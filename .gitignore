@@ -28,6 +28,11 @@ __pycache__/
 *.py[cod]
 node_modules/
 
+# Android build artifacts
+.gradle/
+**/build/
+local.properties
+
 # OS / Editor artifacts
 .DS_Store
 Thumbs.db

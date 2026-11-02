@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DeskMate Companion</string>
+    <string name="tab_device">Device &amp; BLE</string>
+    <string name="tab_pomodoro">Focus</string>
+    <string name="tab_leaderboard">League</string>
+    <string name="ble_scan_start">Scan for DeskMate</string>
+    <string name="ble_scanning">Scanning for nearby DeskMate…</string>
+    <string name="ble_connect">Connect</string>
+    <string name="ble_provision_wifi">Provision Wi-Fi</string>
+    <string name="ble_connected">Connected via BLE</string>
+    <string name="ble_disconnected">Disconnected</string>
+    <string name="wifi_ssid_hint">Wi-Fi Network Name (SSID)</string>
+    <string name="wifi_pass_hint">Wi-Fi Password</string>
+    <string name="send_to_hardware">Send to DeskMate</string>
+    <string name="toggle_lamp">Toggle Lamp</string>
+    <string name="sync_status">Syncing with hardware…</string>
+</resources>
