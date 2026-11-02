@@ -5,17 +5,18 @@
     android:background="@color/bg_light"
     android:orientation="vertical">
 
-    <!-- Top Header Bar -->
+    <!-- Top App Bar (Zomato/Blinkit Style Header) -->
     <LinearLayout
+        android:id="@+id/topAppBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/surface_card"
         android:elevation="3dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="18dp"
+        android:paddingHorizontal="16dp"
         android:paddingTop="36dp"
-        android:paddingBottom="14dp">
+        android:paddingBottom="12dp">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -23,23 +24,43 @@
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="DeskMate AI"
-                android:textColor="@color/text_primary"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DeskMate"
+                    android:textColor="@color/text_primary"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/badge_bg"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:text="AI"
+                    android:textColor="@color/primary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tvHeaderSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="AI Desk Assistant Companion"
+                android:text="AI Desk Assistant"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
         </LinearLayout>
 
+        <!-- Status Indicator Pill -->
         <TextView
             android:id="@+id/badgeStatus"
             android:layout_width="wrap_content"
@@ -47,13 +68,24 @@
             android:background="@drawable/badge_bg"
             android:paddingHorizontal="10dp"
             android:paddingVertical="5dp"
-            android:text="BLE: Ready"
-            android:textColor="@color/primary"
-            android:textSize="12sp"
+            android:text="🟢 Online"
+            android:textColor="@color/accent"
+            android:textSize="11sp"
             android:textStyle="bold" />
+
+        <!-- Dedicated Settings Button -->
+        <Button
+            android:id="@+id/btnOpenSettings"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/chip_bg"
+            android:text="⚙️"
+            android:textSize="18sp" />
     </LinearLayout>
 
-    <!-- Bluetooth Warning / Onboarding Banner (Auto-shown if BT off) -->
+    <!-- Bluetooth Alert Banner (Auto shown if BT is disabled) -->
     <LinearLayout
         android:id="@+id/bannerBluetooth"
         android:layout_width="match_parent"
@@ -66,7 +98,6 @@
         android:visibility="gone">
 
         <TextView
-            android:id="@+id/tvBannerText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -78,88 +109,408 @@
         <Button
             android:id="@+id/btnEnableBluetooth"
             android:layout_width="wrap_content"
-            android:layout_height="34dp"
+            android:layout_height="32dp"
             android:background="@drawable/btn_primary"
             android:paddingHorizontal="12dp"
-            android:text="Enable"
+            android:text="Turn On"
             android:textColor="#FFFFFF"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Navigation Tabs (4 Seamless Pages) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/surface_card"
-        android:elevation="1dp"
-        android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
-        android:paddingBottom="8dp">
-
-        <Button
-            android:id="@+id/tabChat"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_weight="1"
-            android:background="@drawable/btn_primary"
-            android:text="AI Chat"
-            android:textColor="#FFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/tabDevice"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginStart="6dp"
-            android:layout_weight="1"
-            android:background="@drawable/btn_secondary"
-            android:text="Assistant"
-            android:textColor="@color/text_primary"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/tabFocus"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginStart="6dp"
-            android:layout_weight="1"
-            android:background="@drawable/btn_secondary"
-            android:text="Focus"
-            android:textColor="@color/text_primary"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/tabTasks"
-            style="?android:attr/borderlessButtonStyle"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginStart="6dp"
-            android:layout_weight="1"
-            android:background="@drawable/btn_secondary"
-            android:text="Tasks"
-            android:textColor="@color/text_primary"
-            android:textSize="12sp" />
-    </LinearLayout>
-
-    <!-- Main Container Frame for Panels -->
+    <!-- Content Area: All Pages Framed Here -->
     <FrameLayout
+        android:id="@+id/mainContentFrame"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-        <!-- ================= PAGE 1: AI CHATBOT ================= -->
+        <!-- ================= PAGE 1: 🏠 HOME / OVERVIEW ================= -->
+        <ScrollView
+            android:id="@+id/pageHome"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Quick Action Horizontal Carousel (Zomato/Blinkit Style) -->
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:overScrollMode="never"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/quickLamp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:background="@drawable/chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:text="💡 Toggle Lamp"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/quickFocus25"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:text="⏱️ 25m Focus"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/quickChat"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:text="💬 Ask AI"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/quickStopwatch"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:text="⏱️ Stopwatch"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/quickAlarms"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:text="⏰ Alarms"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/quickLeague"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:text="🏆 League"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <!-- Simulated OLED Screen Mirror Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="DeskMate Live OLED Mirror"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/badge_bg"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp"
+                            android:text="128×64 Live"
+                            android:textColor="@color/primary"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Simulated 128x64 OLED Display -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="140dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/oled_card_bg"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:id="@+id/tvOledTime"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:text="02:50"
+                            android:textColor="@color/oled_text"
+                            android:textSize="38sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvOledStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:fontFamily="monospace"
+                            android:text="WIFI: Connected | Batt: USB"
+                            android:textColor="@color/oled_accent"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvOledMode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="monospace"
+                            android:text="Mode: AI Assistant Ready"
+                            android:textColor="#A1A1AA"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- Lamp & Refresh Buttons -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnToggleRelay"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/btn_secondary"
+                            android:text="💡 Toggle Desk Lamp"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btnSyncDevice"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/btn_secondary"
+                            android:text="🔄 Refresh State"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Daily Performance Metrics Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_bg"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="FOCUS TODAY"
+                            android:textColor="@color/text_muted"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvMetricsFocus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="45m"
+                            android:textColor="@color/primary"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CYCLES"
+                            android:textColor="@color/text_muted"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvMetricsCycles"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="2"
+                            android:textColor="@color/primary"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="OPEN TASKS"
+                            android:textColor="@color/text_muted"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvMetricsTasks"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="3"
+                            android:textColor="@color/primary"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="STREAK"
+                            android:textColor="@color/text_muted"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvMetricsStreak"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="3d"
+                            android:textColor="@color/accent"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Quick Pomodoro Launcher Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Focus Pomodoro"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Default study block is 25 minutes."
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/btnQuickStartFocus"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/btn_primary"
+                        android:text="▶ Start 25m Focus Session"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ================= PAGE 2: 💬 AI CHAT ================= -->
         <LinearLayout
-            android:id="@+id/panelChat"
+            android:id="@+id/pageChat"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:visibility="visible">
+            android:visibility="gone">
 
-            <!-- Chat Message ScrollView -->
             <ScrollView
                 android:id="@+id/scrollChat"
                 android:layout_width="match_parent"
@@ -195,16 +546,16 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
                             android:lineSpacingExtra="3dp"
-                            android:text="Hello! I am your AI Desk Assistant. I can control your desk lamp, track study focus, answer study questions, or quiz you on notes."
+                            android:text="Hello! I am your AI Desk Assistant powered by Groq. Ask me to help you study, control your hardware, or quiz you on your notes."
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
 
-                        <!-- Quick suggestion prompts -->
+                        <!-- Prompt chips -->
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="10dp"
-                            android:text="Quick actions:"
+                            android:text="Suggestions:"
                             android:textColor="@color/text_muted"
                             android:textSize="11sp" />
 
@@ -242,12 +593,9 @@
                                 android:textSize="12sp" />
                         </LinearLayout>
                     </LinearLayout>
-
-                    <!-- Dynamic Chat Messages will be appended here -->
                 </LinearLayout>
             </ScrollView>
 
-            <!-- Typing indicator -->
             <TextView
                 android:id="@+id/tvTypingIndicator"
                 android:layout_width="wrap_content"
@@ -259,7 +607,7 @@
                 android:textSize="11sp"
                 android:visibility="gone" />
 
-            <!-- Chat Input Area -->
+            <!-- Chat Input -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -274,7 +622,7 @@
                     android:layout_width="0dp"
                     android:layout_height="44dp"
                     android:layout_weight="1"
-                    android:background="@drawable/btn_secondary"
+                    android:background="@drawable/input_bg"
                     android:hint="Ask DeskMate AI anything…"
                     android:imeOptions="actionSend"
                     android:inputType="textCapSentences"
@@ -296,9 +644,9 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ================= PAGE 2: ASSISTANT & BLE PROVISIONING ================= -->
+        <!-- ================= PAGE 3: ⏱️ FOCUS & PRODUCTIVITY HUB ================= -->
         <ScrollView
-            android:id="@+id/panelDevice"
+            android:id="@+id/pageFocus"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:fillViewport="true"
@@ -310,346 +658,119 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <!-- BLE Wi-Fi Setup Wizard Card -->
-                <LinearLayout
+                <!-- Sub-tools Horizontal Filter Tabs (Pomodoro, Timer, Stopwatch, Alarms, Reminders) -->
+                <HorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/card_bg"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:overScrollMode="never"
+                    android:scrollbars="none">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="AI Assistant Wi-Fi Provisioning"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Pair your phone with DeskMate via Bluetooth to transfer your Wi-Fi credentials seamlessly."
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-
-                    <!-- Scan Button -->
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <Button
-                            android:id="@+id/btnBleScan"
-                            android:layout_width="wrap_content"
-                            android:layout_height="42dp"
-                            android:background="@drawable/btn_primary"
-                            android:paddingHorizontal="18dp"
-                            android:text="Scan for DeskMate"
-                            android:textColor="#FFFFFF"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <ProgressBar
-                            android:id="@+id/pbScanning"
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:layout_marginStart="12dp"
-                            android:indeterminate="true"
-                            android:visibility="gone" />
-
                         <TextView
-                            android:id="@+id/tvBleProgress"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="10dp"
-                            android:layout_weight="1"
-                            android:text="Ready to scan"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="13sp" />
-                    </LinearLayout>
-
-                    <!-- Discovered Device Card -->
-                    <LinearLayout
-                        android:id="@+id/containerDiscoveredDevice"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:background="@drawable/btn_secondary"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp"
-                        android:visibility="gone">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/tvDiscoveredName"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="DeskMate-01"
-                                android:textColor="@color/text_primary"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/tvDiscoveredMac"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="MAC: 00:00:00:00:00:00 | RSSI: -65 dBm"
-                                android:textColor="@color/text_muted"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <Button
-                            android:id="@+id/btnConnectDevice"
+                            android:id="@+id/subTabPomodoro"
                             android:layout_width="wrap_content"
-                            android:layout_height="38dp"
-                            android:background="@drawable/btn_primary"
-                            android:paddingHorizontal="14dp"
-                            android:text="Connect"
+                            android:layout_height="36dp"
+                            android:background="@drawable/chip_active_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="16dp"
+                            android:text="Pomodoro"
                             android:textColor="#FFFFFF"
                             android:textSize="12sp"
                             android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <!-- Wi-Fi Form (Triggered after connection) -->
-                    <LinearLayout
-                        android:id="@+id/layoutWifiForm"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:orientation="vertical"
-                        android:visibility="gone">
 
                         <TextView
+                            android:id="@+id/subTabTimer"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Enter Wi-Fi Credentials for DeskMate"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="6dp"
+                            android:background="@drawable/chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="16dp"
+                            android:text="Timer"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
+                            android:textSize="12sp" />
 
-                        <EditText
-                            android:id="@+id/etWifiSsid"
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:layout_marginTop="8dp"
-                            android:background="@drawable/btn_secondary"
-                            android:hint="Wi-Fi SSID (e.g. Home_Network)"
-                            android:inputType="text"
-                            android:paddingHorizontal="14dp"
+                        <TextView
+                            android:id="@+id/subTabStopwatch"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="6dp"
+                            android:background="@drawable/chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="16dp"
+                            android:text="Stopwatch"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp" />
+                            android:textSize="12sp" />
 
-                        <EditText
-                            android:id="@+id/etWifiPass"
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:layout_marginTop="8dp"
-                            android:background="@drawable/btn_secondary"
-                            android:hint="Wi-Fi Password"
-                            android:inputType="textPassword"
-                            android:paddingHorizontal="14dp"
+                        <TextView
+                            android:id="@+id/subTabAlarms"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="6dp"
+                            android:background="@drawable/chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="16dp"
+                            android:text="Alarms"
                             android:textColor="@color/text_primary"
-                            android:textSize="14sp" />
+                            android:textSize="12sp" />
 
-                        <Button
-                            android:id="@+id/btnSendWifi"
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:layout_marginTop="10dp"
-                            android:background="@drawable/btn_primary"
-                            android:text="Transfer Wi-Fi to AI Assistant"
-                            android:textColor="#FFFFFF"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/subTabReminders"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="6dp"
+                            android:background="@drawable/chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="16dp"
+                            android:text="Reminders"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp" />
                     </LinearLayout>
-                </LinearLayout>
+                </HorizontalScrollView>
 
-                <!-- Simulated OLED Mirror & Lamp Card -->
+                <!-- Sub-Section 1: POMODORO -->
                 <LinearLayout
+                    android:id="@+id/sectionPomodoro"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:background="@drawable/card_bg"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="DeskMate Live OLED Mirror"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <!-- Simulated 128x64 OLED Display -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="140dp"
-                        android:layout_marginTop="12dp"
-                        android:background="@drawable/oled_card_bg"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-
-                        <TextView
-                            android:id="@+id/tvOledTime"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="monospace"
-                            android:text="02:40"
-                            android:textColor="@color/oled_text"
-                            android:textSize="38sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvOledStatus"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:fontFamily="monospace"
-                            android:text="WIFI: Connected | Batt: USB"
-                            android:textColor="@color/oled_accent"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:id="@+id/tvOledMode"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:fontFamily="monospace"
-                            android:text="Mode: AI Assistant Ready"
-                            android:textColor="#A1A1AA"
-                            android:textSize="11sp" />
-                    </LinearLayout>
-
-                    <!-- Quick Controls -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <Button
-                            android:id="@+id/btnToggleRelay"
-                            android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/btn_secondary"
-                            android:text="💡 Toggle Desk Lamp"
-                            android:textColor="@color/text_primary"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <Button
-                            android:id="@+id/btnSyncDevice"
-                            android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_marginStart="10dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/btn_secondary"
-                            android:text="🔄 Refresh State"
-                            android:textColor="@color/text_primary"
-                            android:textSize="13sp" />
-                    </LinearLayout>
-
-                    <!-- Backend Host Config -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Backend API Endpoint"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:orientation="horizontal">
-
-                            <EditText
-                                android:id="@+id/etBackendHost"
-                                android:layout_width="0dp"
-                                android:layout_height="42dp"
-                                android:layout_weight="1"
-                                android:background="@drawable/btn_secondary"
-                                android:hint="http://192.168.1.10:8000"
-                                android:inputType="textUri"
-                                android:paddingHorizontal="12dp"
-                                android:text="http://10.0.2.2:8000"
-                                android:textColor="@color/text_primary"
-                                android:textSize="13sp" />
-
-                            <Button
-                                android:id="@+id/btnSaveHost"
-                                android:layout_width="wrap_content"
-                                android:layout_height="42dp"
-                                android:layout_marginStart="8dp"
-                                android:background="@drawable/btn_primary"
-                                android:text="Save"
-                                android:textColor="#FFFFFF"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-        </ScrollView>
-
-        <!-- ================= PAGE 3: FOCUS & POMODORO ================= -->
-        <ScrollView
-            android:id="@+id/panelFocus"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:fillViewport="true"
-            android:visibility="gone">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/card_bg"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="24dp">
+                    android:padding="20dp"
+                    android:visibility="visible">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Focus Pomodoro"
+                        android:text="Pomodoro Focus Session"
                         android:textColor="@color/text_secondary"
-                        android:textSize="14sp"
+                        android:textSize="13sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tvFocusCountdown"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="6dp"
                         android:fontFamily="sans-serif-medium"
                         android:text="25:00"
                         android:textColor="@color/primary"
-                        android:textSize="56sp"
+                        android:textSize="54sp"
                         android:textStyle="bold" />
 
                     <TextView
@@ -658,18 +779,18 @@
                         android:layout_height="wrap_content"
                         android:text="Deep Work Session"
                         android:textColor="@color/text_muted"
-                        android:textSize="13sp" />
+                        android:textSize="12sp" />
 
                     <!-- Presets -->
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="18dp"
+                        android:layout_marginTop="16dp"
                         android:orientation="horizontal">
 
                         <Button
                             android:id="@+id/btnPreset5"
-                            android:layout_width="64dp"
+                            android:layout_width="60dp"
                             android:layout_height="36dp"
                             android:background="@drawable/btn_secondary"
                             android:text="5m"
@@ -678,7 +799,7 @@
 
                         <Button
                             android:id="@+id/btnPreset15"
-                            android:layout_width="64dp"
+                            android:layout_width="60dp"
                             android:layout_height="36dp"
                             android:layout_marginStart="8dp"
                             android:background="@drawable/btn_secondary"
@@ -688,12 +809,22 @@
 
                         <Button
                             android:id="@+id/btnPreset25"
-                            android:layout_width="64dp"
+                            android:layout_width="60dp"
                             android:layout_height="36dp"
                             android:layout_marginStart="8dp"
                             android:background="@drawable/btn_primary"
                             android:text="25m"
                             android:textColor="#FFFFFF"
+                            android:textSize="12sp" />
+
+                        <Button
+                            android:id="@+id/btnPreset45"
+                            android:layout_width="60dp"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/btn_secondary"
+                            android:text="45m"
+                            android:textColor="@color/text_primary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -702,37 +833,125 @@
                         android:id="@+id/btnStartFocus"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
-                        android:layout_marginTop="20dp"
+                        android:layout_marginTop="18dp"
                         android:background="@drawable/btn_primary"
                         android:text="▶ Start Focus Session"
                         android:textColor="#FFFFFF"
-                        android:textSize="15sp"
+                        android:textSize="14sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Daily Performance Card -->
+                <!-- Sub-Section 2: STOPWATCH -->
                 <LinearLayout
+                    android:id="@+id/sectionStopwatch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:background="@drawable/card_bg"
+                    android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp"
+                    android:visibility="gone">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Today's Study Progress"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
+                        android:text="Precision Stopwatch"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvStopwatchTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:fontFamily="monospace"
+                        android:text="00:00.00"
+                        android:textColor="@color/primary"
+                        android:textSize="48sp"
                         android:textStyle="bold" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="16dp"
                         android:orientation="horizontal">
 
+                        <Button
+                            android:id="@+id/btnStartStopwatch"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/btn_primary"
+                            android:text="Start"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btnLapStopwatch"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/btn_secondary"
+                            android:text="Lap"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/btnResetStopwatch"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/btn_secondary"
+                            android:text="Reset"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvStopwatchLaps"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:fontFamily="monospace"
+                        android:text="Laps will appear here"
+                        android:textColor="@color/text_muted"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Sub-Section 3: ALARMS -->
+                <LinearLayout
+                    android:id="@+id/sectionAlarms"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Assistant Alarms"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <!-- Alarm Item 1 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/btn_secondary"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="12dp">
+
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -742,73 +961,100 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="FOCUS TIME"
-                                android:textColor="@color/text_muted"
-                                android:textSize="11sp" />
+                                android:fontFamily="monospace"
+                                android:text="07:00 AM"
+                                android:textColor="@color/text_primary"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
 
                             <TextView
-                                android:id="@+id/tvFocusMinutes"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="45m"
-                                android:textColor="@color/primary"
-                                android:textSize="22sp"
-                                android:textStyle="bold" />
+                                android:text="Morning Study Bell | Mon-Fri"
+                                android:textColor="@color/text_muted"
+                                android:textSize="11sp" />
                         </LinearLayout>
 
-                        <LinearLayout
-                            android:layout_width="0dp"
+                        <CheckBox
+                            android:id="@+id/cbAlarm1"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="CYCLES"
-                                android:textColor="@color/text_muted"
-                                android:textSize="11sp" />
-
-                            <TextView
-                                android:id="@+id/tvFocusCycles"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="2"
-                                android:textColor="@color/primary"
-                                android:textSize="22sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="STREAK"
-                                android:textColor="@color/text_muted"
-                                android:textSize="11sp" />
-
-                            <TextView
-                                android:id="@+id/tvFocusStreak"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="3d"
-                                android:textColor="@color/accent"
-                                android:textSize="22sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
+                            android:checked="true" />
                     </LinearLayout>
                 </LinearLayout>
+
+                <!-- Sub-Section 4: REMINDERS -->
+                <LinearLayout
+                    android:id="@+id/sectionReminders"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Study Reminders"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/btn_secondary"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="12dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Revise Chemistry Notes"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Today at 05:00 PM"
+                                android:textColor="@color/text_muted"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/badge_bg"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp"
+                            android:text="Active"
+                            android:textColor="@color/primary"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp" />
             </LinearLayout>
         </ScrollView>
 
-        <!-- ================= PAGE 4: TASKS & STUDY LEAGUE ================= -->
+        <!-- ================= PAGE 4: 📚 STUDY & TASKS ================= -->
         <ScrollView
-            android:id="@+id/panelTasks"
+            android:id="@+id/pageStudy"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:fillViewport="true"
@@ -820,20 +1066,72 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <!-- Add Task Card -->
+                <!-- Sub-Tabs: Tasks, Notes & AI Quiz, Analytics -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/subTabTasks"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/chip_active_bg"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:text="Tasks"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/subTabNotes"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/chip_bg"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:text="Notes &amp; Quiz"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/subTabAnalytics"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/chip_bg"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:text="Analytics"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Section: TASKS -->
+                <LinearLayout
+                    android:id="@+id/sectionTasks"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
                     android:background="@drawable/card_bg"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="16dp"
+                    android:visibility="visible">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Study Tasks"
+                        android:text="Today's Study Checklist"
                         android:textColor="@color/text_primary"
-                        android:textSize="16sp"
+                        android:textSize="15sp"
                         android:textStyle="bold" />
 
                     <LinearLayout
@@ -848,8 +1146,8 @@
                             android:layout_width="0dp"
                             android:layout_height="44dp"
                             android:layout_weight="1"
-                            android:background="@drawable/btn_secondary"
-                            android:hint="Add new task (e.g. Physics Chapter 4)"
+                            android:background="@drawable/input_bg"
+                            android:hint="Add new study task…"
                             android:paddingHorizontal="12dp"
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
@@ -865,7 +1163,6 @@
                             android:textSize="13sp" />
                     </LinearLayout>
 
-                    <!-- Tasks List Container -->
                     <LinearLayout
                         android:id="@+id/containerTasksList"
                         android:layout_width="match_parent"
@@ -873,7 +1170,6 @@
                         android:layout_marginTop="12dp"
                         android:orientation="vertical">
 
-                        <!-- Default sample task item -->
                         <TextView
                             android:id="@+id/tvEmptyTasks"
                             android:layout_width="wrap_content"
@@ -885,11 +1181,270 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Study League & Competition Code Card -->
+                <!-- Section: NOTES & AI QUIZ -->
                 <LinearLayout
+                    android:id="@+id/sectionNotes"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Study Notes &amp; Flashcards"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/btn_secondary"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📖 Thermodynamics &amp; Heat Transfer"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Key laws, Carnot engine efficiency, entropy formulas."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+
+                        <Button
+                            android:id="@+id/btnQuizNotes"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="10dp"
+                            android:background="@drawable/btn_primary"
+                            android:text="🧠 Generate AI Quiz from Notes"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Section: ANALYTICS -->
+                <LinearLayout
+                    android:id="@+id/sectionAnalytics"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Weekly Study Analytics"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Total study time this week: 14h 25m"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <!-- Simple simulated bar chart -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="120dp"
+                        android:layout_marginTop="14dp"
+                        android:gravity="bottom"
+                        android:orientation="horizontal">
+
+                        <!-- Mon -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:gravity="bottom|center_horizontal"
+                            android:orientation="vertical">
+
+                            <View
+                                android:layout_width="20dp"
+                                android:layout_height="50dp"
+                                android:background="@drawable/btn_primary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="M"
+                                android:textSize="10sp" />
+                        </LinearLayout>
+
+                        <!-- Tue -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:gravity="bottom|center_horizontal"
+                            android:orientation="vertical">
+
+                            <View
+                                android:layout_width="20dp"
+                                android:layout_height="80dp"
+                                android:background="@drawable/btn_primary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="T"
+                                android:textSize="10sp" />
+                        </LinearLayout>
+
+                        <!-- Wed -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:gravity="bottom|center_horizontal"
+                            android:orientation="vertical">
+
+                            <View
+                                android:layout_width="20dp"
+                                android:layout_height="65dp"
+                                android:background="@drawable/btn_primary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="W"
+                                android:textSize="10sp" />
+                        </LinearLayout>
+
+                        <!-- Thu -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:gravity="bottom|center_horizontal"
+                            android:orientation="vertical">
+
+                            <View
+                                android:layout_width="20dp"
+                                android:layout_height="90dp"
+                                android:background="@drawable/btn_primary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="T"
+                                android:textSize="10sp" />
+                        </LinearLayout>
+
+                        <!-- Fri -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:gravity="bottom|center_horizontal"
+                            android:orientation="vertical">
+
+                            <View
+                                android:layout_width="20dp"
+                                android:layout_height="45dp"
+                                android:background="@drawable/btn_primary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="F"
+                                android:textSize="10sp" />
+                        </LinearLayout>
+
+                        <!-- Sat -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:gravity="bottom|center_horizontal"
+                            android:orientation="vertical">
+
+                            <View
+                                android:layout_width="20dp"
+                                android:layout_height="100dp"
+                                android:background="@drawable/btn_primary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="S"
+                                android:textSize="10sp" />
+                        </LinearLayout>
+
+                        <!-- Sun -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:gravity="bottom|center_horizontal"
+                            android:orientation="vertical">
+
+                            <View
+                                android:layout_width="20dp"
+                                android:layout_height="35dp"
+                                android:background="@drawable/btn_primary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="S"
+                                android:textSize="10sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ================= PAGE 5: 🏆 LEAGUE & CHALLENGES ================= -->
+        <ScrollView
+            android:id="@+id/pageLeague"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Competition Code Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                     android:background="@drawable/card_bg"
                     android:orientation="vertical"
                     android:padding="16dp">
@@ -899,8 +1454,16 @@
                         android:layout_height="wrap_content"
                         android:text="Your Competition Code"
                         android:textColor="@color/text_primary"
-                        android:textSize="16sp"
+                        android:textSize="15sp"
                         android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Classmates enter this code to link study challenges."
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -932,32 +1495,41 @@
                             android:textColor="#FFFFFF"
                             android:textSize="12sp" />
                     </LinearLayout>
+                </LinearLayout>
+
+                <!-- Leaderboard Standings -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:text="Leaderboard Standings"
+                        android:text="Study League Leaderboard"
                         android:textColor="@color/text_primary"
-                        android:textSize="14sp"
+                        android:textSize="15sp"
                         android:textStyle="bold" />
 
                     <!-- Rank 1 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
+                        android:layout_marginTop="10dp"
                         android:background="@drawable/btn_secondary"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="10dp">
+                        android:padding="12dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="🏆 #1"
                             android:textColor="#D97706"
-                            android:textSize="15sp"
+                            android:textSize="16sp"
                             android:textStyle="bold" />
 
                         <LinearLayout
@@ -972,34 +1544,42 @@
                                 android:layout_height="wrap_content"
                                 android:text="Alex (Study Challenger)"
                                 android:textColor="@color/text_primary"
-                                android:textSize="13sp"
+                                android:textSize="14sp"
                                 android:textStyle="bold" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Code: CHAL-9900 | 850 XP"
+                                android:text="Code: CHAL-9900 | 4h 15m focus"
                                 android:textColor="@color/text_muted"
                                 android:textSize="11sp" />
                         </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="850 XP"
+                            android:textColor="@color/primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
                     <!-- Rank 2 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
+                        android:layout_marginTop="8dp"
                         android:background="@drawable/btn_secondary"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:padding="10dp">
+                        android:padding="12dp">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="🥈 #2"
                             android:textColor="@color/text_secondary"
-                            android:textSize="15sp"
+                            android:textSize="16sp"
                             android:textStyle="bold" />
 
                         <LinearLayout
@@ -1014,21 +1594,467 @@
                                 android:layout_height="wrap_content"
                                 android:text="Alok (You)"
                                 android:textColor="@color/text_primary"
-                                android:textSize="13sp"
+                                android:textSize="14sp"
                                 android:textStyle="bold" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Code: ALOK-7572 | 620 XP"
+                                android:text="Code: ALOK-7572 | 3h 10m focus"
                                 android:textColor="@color/text_muted"
                                 android:textSize="11sp" />
                         </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="620 XP"
+                            android:textColor="@color/primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ================= PAGE 6: ⚙️ SETTINGS & DEVICE CONFIG (DEDICATED PAGE) ================= -->
+        <ScrollView
+            android:id="@+id/pageSettings"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Header with Back Button -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnCloseSettings"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:background="@drawable/chip_bg"
+                        android:text="←"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:text="Settings &amp; Device Setup"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- BLE Wi-Fi Setup Wizard Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Bluetooth Low Energy Setup"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Pair with DeskMate over BLE to provision Wi-Fi credentials seamlessly."
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnBleScan"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:background="@drawable/btn_primary"
+                            android:paddingHorizontal="16dp"
+                            android:text="Scan for DeskMate"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <ProgressBar
+                            android:id="@+id/pbScanning"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginStart="10dp"
+                            android:indeterminate="true"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/tvBleProgress"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:text="Ready to scan"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Discovered Device Card -->
+                    <LinearLayout
+                        android:id="@+id/containerDiscoveredDevice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/btn_secondary"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="12dp"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvDiscoveredName"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="DeskMate-01"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvDiscoveredMac"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="MAC: 00:00:00:00:00:00"
+                                android:textColor="@color/text_muted"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <Button
+                            android:id="@+id/btnConnectDevice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:background="@drawable/btn_primary"
+                            android:paddingHorizontal="14dp"
+                            android:text="Connect"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Wi-Fi Form -->
+                    <LinearLayout
+                        android:id="@+id/layoutWifiForm"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Enter Wi-Fi Credentials for DeskMate"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <EditText
+                            android:id="@+id/etWifiSsid"
+                            android:layout_width="match_parent"
+                            android:layout_height="42dp"
+                            android:layout_marginTop="6dp"
+                            android:background="@drawable/input_bg"
+                            android:hint="Wi-Fi SSID (e.g. Home_Network)"
+                            android:inputType="text"
+                            android:paddingHorizontal="12dp"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <EditText
+                            android:id="@+id/etWifiPass"
+                            android:layout_width="match_parent"
+                            android:layout_height="42dp"
+                            android:layout_marginTop="6dp"
+                            android:background="@drawable/input_bg"
+                            android:hint="Wi-Fi Password"
+                            android:inputType="textPassword"
+                            android:paddingHorizontal="12dp"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/btnSendWifi"
+                            android:layout_width="match_parent"
+                            android:layout_height="42dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/btn_primary"
+                            android:text="Transfer Wi-Fi to AI Assistant"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Backend API Host Config Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Backend API Endpoint"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
+
+                        <EditText
+                            android:id="@+id/etBackendHost"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/input_bg"
+                            android:hint="http://192.168.1.10:8000"
+                            android:inputType="textUri"
+                            android:paddingHorizontal="12dp"
+                            android:text="http://10.0.2.2:8000"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+
+                        <Button
+                            android:id="@+id/btnSaveHost"
+                            android:layout_width="wrap_content"
+                            android:layout_height="42dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/btn_primary"
+                            android:text="Save"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Demo Challenger Account Info -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/card_bg"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Study League Demo Profile"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Challenger ID: challenger | Pass: Challenger#2026\nCompetition Code: CHAL-9900"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp" />
             </LinearLayout>
         </ScrollView>
 
     </FrameLayout>
+
+    <!-- Modern Bottom Navigation Bar (Zomato/Blinkit 5-Tab Style) -->
+    <LinearLayout
+        android:id="@+id/bottomNavBar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="@drawable/bottom_nav_bg"
+        android:elevation="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- Tab 1: Home -->
+        <LinearLayout
+            android:id="@+id/navHome"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/pill_nav_active"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/iconNavHome"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🏠"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/labelNavHome"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Home"
+                android:textColor="@color/primary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Tab 2: Chat -->
+        <LinearLayout
+            android:id="@+id/navChat"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/iconNavChat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💬"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/labelNavChat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AI Chat"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Tab 3: Focus -->
+        <LinearLayout
+            android:id="@+id/navFocus"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/iconNavFocus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⏱️"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/labelNavFocus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Focus"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Tab 4: Study -->
+        <LinearLayout
+            android:id="@+id/navStudy"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/iconNavStudy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📚"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/labelNavStudy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Study"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Tab 5: League -->
+        <LinearLayout
+            android:id="@+id/navLeague"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/iconNavLeague"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🏆"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/labelNavLeague"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="League"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
 
 </LinearLayout>

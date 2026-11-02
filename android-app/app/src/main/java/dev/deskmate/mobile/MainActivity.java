@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -52,18 +53,29 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     private static final int REQ_ENABLE_BT = 1002;
     private static final String PREFS_NAME = "deskmate_prefs";
     private static final String KEY_BACKEND_HOST = "backend_host";
-    private static final String KEY_DEVICE_ID = "device_id";
 
     // Top Header & Banners
     private TextView badgeStatus;
+    private Button btnOpenSettings;
     private LinearLayout bannerBluetooth;
     private Button btnEnableBluetooth;
 
-    // Tabs
-    private Button tabChat, tabDevice, tabFocus, tabTasks;
-    private View panelChat, panelDevice, panelFocus, panelTasks;
+    // Bottom Navigation Bar & Tabs
+    private LinearLayout bottomNavBar;
+    private LinearLayout navHome, navChat, navFocus, navStudy, navLeague;
+    private TextView labelNavHome, labelNavChat, labelNavFocus, labelNavStudy, labelNavLeague;
 
-    // Page 1: AI Chat
+    // Pages
+    private View pageHome, pageChat, pageFocus, pageStudy, pageLeague, pageSettings;
+    private int currentTab = 0; // 0=Home, 1=Chat, 2=Focus, 3=Study, 4=League
+
+    // Page 1: Home
+    private TextView quickLamp, quickFocus25, quickChat, quickStopwatch, quickAlarms, quickLeague;
+    private TextView tvOledTime, tvOledStatus, tvOledMode;
+    private Button btnToggleRelay, btnSyncDevice, btnQuickStartFocus;
+    private TextView tvMetricsFocus, tvMetricsCycles, tvMetricsTasks, tvMetricsStreak;
+
+    // Page 2: Chat
     private ScrollView scrollChat;
     private LinearLayout containerChatMessages;
     private EditText etChatMessage;
@@ -71,7 +83,34 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     private TextView tvTypingIndicator;
     private TextView chipStartFocus, chipToggleLamp;
 
-    // Page 2: Assistant & BLE
+    // Page 3: Focus & Productivity Hub
+    private TextView subTabPomodoro, subTabTimer, subTabStopwatch, subTabAlarms, subTabReminders;
+    private View sectionPomodoro, sectionStopwatch, sectionAlarms, sectionReminders;
+    private TextView tvFocusCountdown, tvFocusSessionLabel;
+    private Button btnPreset5, btnPreset15, btnPreset25, btnPreset45, btnStartFocus;
+
+    // Stopwatch Sub-tool
+    private TextView tvStopwatchTime, tvStopwatchLaps;
+    private Button btnStartStopwatch, btnLapStopwatch, btnResetStopwatch;
+    private boolean isStopwatchRunning = false;
+    private long stopwatchBaseTime = 0;
+    private long stopwatchTimeBuff = 0;
+    private int lapCounter = 1;
+
+    // Page 4: Study & Tasks
+    private TextView subTabTasks, subTabNotes, subTabAnalytics;
+    private View sectionTasks, sectionNotes, sectionAnalytics;
+    private EditText etNewTask;
+    private Button btnAddTask, btnQuizNotes;
+    private LinearLayout containerTasksList;
+    private TextView tvEmptyTasks;
+
+    // Page 5: League
+    private TextView tvCompetitionCode;
+    private Button btnCopyCode;
+
+    // Page 6: Settings (Dedicated Page)
+    private Button btnCloseSettings;
     private Button btnBleScan;
     private ProgressBar pbScanning;
     private TextView tvBleProgress;
@@ -81,27 +120,10 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     private LinearLayout layoutWifiForm;
     private EditText etWifiSsid, etWifiPass;
     private Button btnSendWifi;
-
-    private TextView tvOledTime, tvOledStatus, tvOledMode;
-    private Button btnToggleRelay, btnSyncDevice;
     private EditText etBackendHost;
     private Button btnSaveHost;
 
-    // Page 3: Focus & Pomodoro
-    private TextView tvFocusCountdown, tvFocusSessionLabel;
-    private Button btnPreset5, btnPreset15, btnPreset25;
-    private Button btnStartFocus;
-    private TextView tvFocusMinutes, tvFocusCycles, tvFocusStreak;
-
-    // Page 4: Tasks & League
-    private EditText etNewTask;
-    private Button btnAddTask;
-    private LinearLayout containerTasksList;
-    private TextView tvEmptyTasks;
-    private TextView tvCompetitionCode;
-    private Button btnCopyCode;
-
-    // Services & State
+    // Logic, BLE & Handlers
     private DeskMateBleManager bleManager;
     private BackendClient backendClient;
     private SharedPreferences prefs;
@@ -124,12 +146,13 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
         bleManager.setListener(this);
 
         initViews();
-        setupTabs();
+        setupBottomNavigation();
+        setupQuickCarousel();
         setupChatbot();
-        setupBleControls();
-        setupHardwareControls();
-        setupFocusControls();
-        setupTasksAndLeague();
+        setupFocusHub();
+        setupStopwatch();
+        setupStudyHub();
+        setupSettingsAndBle();
 
         checkAndRequestPermissions();
         checkBluetoothState(true);
@@ -145,18 +168,49 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
 
     private void initViews() {
         badgeStatus = findViewById(R.id.badgeStatus);
+        btnOpenSettings = findViewById(R.id.btnOpenSettings);
         bannerBluetooth = findViewById(R.id.bannerBluetooth);
         btnEnableBluetooth = findViewById(R.id.btnEnableBluetooth);
 
-        tabChat = findViewById(R.id.tabChat);
-        tabDevice = findViewById(R.id.tabDevice);
-        tabFocus = findViewById(R.id.tabFocus);
-        tabTasks = findViewById(R.id.tabTasks);
+        bottomNavBar = findViewById(R.id.bottomNavBar);
+        navHome = findViewById(R.id.navHome);
+        navChat = findViewById(R.id.navChat);
+        navFocus = findViewById(R.id.navFocus);
+        navStudy = findViewById(R.id.navStudy);
+        navLeague = findViewById(R.id.navLeague);
 
-        panelChat = findViewById(R.id.panelChat);
-        panelDevice = findViewById(R.id.panelDevice);
-        panelFocus = findViewById(R.id.panelFocus);
-        panelTasks = findViewById(R.id.panelTasks);
+        labelNavHome = findViewById(R.id.labelNavHome);
+        labelNavChat = findViewById(R.id.labelNavChat);
+        labelNavFocus = findViewById(R.id.labelNavFocus);
+        labelNavStudy = findViewById(R.id.labelNavStudy);
+        labelNavLeague = findViewById(R.id.labelNavLeague);
+
+        pageHome = findViewById(R.id.pageHome);
+        pageChat = findViewById(R.id.pageChat);
+        pageFocus = findViewById(R.id.pageFocus);
+        pageStudy = findViewById(R.id.pageStudy);
+        pageLeague = findViewById(R.id.pageLeague);
+        pageSettings = findViewById(R.id.pageSettings);
+
+        // Home
+        quickLamp = findViewById(R.id.quickLamp);
+        quickFocus25 = findViewById(R.id.quickFocus25);
+        quickChat = findViewById(R.id.quickChat);
+        quickStopwatch = findViewById(R.id.quickStopwatch);
+        quickAlarms = findViewById(R.id.quickAlarms);
+        quickLeague = findViewById(R.id.quickLeague);
+
+        tvOledTime = findViewById(R.id.tvOledTime);
+        tvOledStatus = findViewById(R.id.tvOledStatus);
+        tvOledMode = findViewById(R.id.tvOledMode);
+        btnToggleRelay = findViewById(R.id.btnToggleRelay);
+        btnSyncDevice = findViewById(R.id.btnSyncDevice);
+        btnQuickStartFocus = findViewById(R.id.btnQuickStartFocus);
+
+        tvMetricsFocus = findViewById(R.id.tvMetricsFocus);
+        tvMetricsCycles = findViewById(R.id.tvMetricsCycles);
+        tvMetricsTasks = findViewById(R.id.tvMetricsTasks);
+        tvMetricsStreak = findViewById(R.id.tvMetricsStreak);
 
         // Chat
         scrollChat = findViewById(R.id.scrollChat);
@@ -167,7 +221,53 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
         chipStartFocus = findViewById(R.id.chipStartFocus);
         chipToggleLamp = findViewById(R.id.chipToggleLamp);
 
-        // Device & BLE
+        // Focus
+        subTabPomodoro = findViewById(R.id.subTabPomodoro);
+        subTabTimer = findViewById(R.id.subTabTimer);
+        subTabStopwatch = findViewById(R.id.subTabStopwatch);
+        subTabAlarms = findViewById(R.id.subTabAlarms);
+        subTabReminders = findViewById(R.id.subTabReminders);
+
+        sectionPomodoro = findViewById(R.id.sectionPomodoro);
+        sectionStopwatch = findViewById(R.id.sectionStopwatch);
+        sectionAlarms = findViewById(R.id.sectionAlarms);
+        sectionReminders = findViewById(R.id.sectionReminders);
+
+        tvFocusCountdown = findViewById(R.id.tvFocusCountdown);
+        tvFocusSessionLabel = findViewById(R.id.tvFocusSessionLabel);
+        btnPreset5 = findViewById(R.id.btnPreset5);
+        btnPreset15 = findViewById(R.id.btnPreset15);
+        btnPreset25 = findViewById(R.id.btnPreset25);
+        btnPreset45 = findViewById(R.id.btnPreset45);
+        btnStartFocus = findViewById(R.id.btnStartFocus);
+
+        tvStopwatchTime = findViewById(R.id.tvStopwatchTime);
+        tvStopwatchLaps = findViewById(R.id.tvStopwatchLaps);
+        btnStartStopwatch = findViewById(R.id.btnStartStopwatch);
+        btnLapStopwatch = findViewById(R.id.btnLapStopwatch);
+        btnResetStopwatch = findViewById(R.id.btnResetStopwatch);
+
+        // Study
+        subTabTasks = findViewById(R.id.subTabTasks);
+        subTabNotes = findViewById(R.id.subTabNotes);
+        subTabAnalytics = findViewById(R.id.subTabAnalytics);
+
+        sectionTasks = findViewById(R.id.sectionTasks);
+        sectionNotes = findViewById(R.id.sectionNotes);
+        sectionAnalytics = findViewById(R.id.sectionAnalytics);
+
+        etNewTask = findViewById(R.id.etNewTask);
+        btnAddTask = findViewById(R.id.btnAddTask);
+        btnQuizNotes = findViewById(R.id.btnQuizNotes);
+        containerTasksList = findViewById(R.id.containerTasksList);
+        tvEmptyTasks = findViewById(R.id.tvEmptyTasks);
+
+        // League
+        tvCompetitionCode = findViewById(R.id.tvCompetitionCode);
+        btnCopyCode = findViewById(R.id.btnCopyCode);
+
+        // Settings
+        btnCloseSettings = findViewById(R.id.btnCloseSettings);
         btnBleScan = findViewById(R.id.btnBleScan);
         pbScanning = findViewById(R.id.pbScanning);
         tvBleProgress = findViewById(R.id.tvBleProgress);
@@ -181,93 +281,105 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
         etWifiPass = findViewById(R.id.etWifiPass);
         btnSendWifi = findViewById(R.id.btnSendWifi);
 
-        tvOledTime = findViewById(R.id.tvOledTime);
-        tvOledStatus = findViewById(R.id.tvOledStatus);
-        tvOledMode = findViewById(R.id.tvOledMode);
-        btnToggleRelay = findViewById(R.id.btnToggleRelay);
-        btnSyncDevice = findViewById(R.id.btnSyncDevice);
         etBackendHost = findViewById(R.id.etBackendHost);
         btnSaveHost = findViewById(R.id.btnSaveHost);
 
-        // Focus
-        tvFocusCountdown = findViewById(R.id.tvFocusCountdown);
-        tvFocusSessionLabel = findViewById(R.id.tvFocusSessionLabel);
-        btnPreset5 = findViewById(R.id.btnPreset5);
-        btnPreset15 = findViewById(R.id.btnPreset15);
-        btnPreset25 = findViewById(R.id.btnPreset25);
-        btnStartFocus = findViewById(R.id.btnStartFocus);
-        tvFocusMinutes = findViewById(R.id.tvFocusMinutes);
-        tvFocusCycles = findViewById(R.id.tvFocusCycles);
-        tvFocusStreak = findViewById(R.id.tvFocusStreak);
-
-        // Tasks & League
-        etNewTask = findViewById(R.id.etNewTask);
-        btnAddTask = findViewById(R.id.btnAddTask);
-        containerTasksList = findViewById(R.id.containerTasksList);
-        tvEmptyTasks = findViewById(R.id.tvEmptyTasks);
-        tvCompetitionCode = findViewById(R.id.tvCompetitionCode);
-        btnCopyCode = findViewById(R.id.btnCopyCode);
-
-        // Load persisted host
         String savedHost = prefs.getString(KEY_BACKEND_HOST, "http://10.0.2.2:8000");
         etBackendHost.setText(savedHost);
 
         btnEnableBluetooth.setOnClickListener(v -> requestEnableBluetooth());
     }
 
-    private void checkBluetoothState(boolean showDialogIfDisabled) {
-        if (!bleManager.isBluetoothEnabled()) {
-            bannerBluetooth.setVisibility(View.VISIBLE);
-            badgeStatus.setText("BLE: Off");
-            badgeStatus.setTextColor(0xFFEF4444);
+    // ========================================================
+    // 🧭 BOTTOM NAVIGATION (Zomato / Blinkit Style)
+    // ========================================================
 
-            if (showDialogIfDisabled) {
-                new AlertDialog.Builder(this)
-                        .setTitle("Turn on Bluetooth")
-                        .setMessage("DeskMate AI Assistant requires Bluetooth to discover and provision your device. Turn on Bluetooth now?")
-                        .setPositiveButton("Turn On", (d, w) -> requestEnableBluetooth())
-                        .setNegativeButton("Later", null)
-                        .show();
-            }
-        } else {
-            bannerBluetooth.setVisibility(View.GONE);
-            badgeStatus.setText("BLE: Ready");
-            badgeStatus.setTextColor(0xFF2563EB);
-        }
-    }
+    private void setupBottomNavigation() {
+        navHome.setOnClickListener(v -> selectTab(0));
+        navChat.setOnClickListener(v -> selectTab(1));
+        navFocus.setOnClickListener(v -> selectTab(2));
+        navStudy.setOnClickListener(v -> selectTab(3));
+        navLeague.setOnClickListener(v -> selectTab(4));
 
-    @SuppressLint("MissingPermission")
-    private void requestEnableBluetooth() {
-        try {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQ_ENABLE_BT);
-        } catch (Exception e) {
-            Toast.makeText(this, "Please enable Bluetooth in Android settings.", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void setupTabs() {
-        tabChat.setOnClickListener(v -> selectTab(0));
-        tabDevice.setOnClickListener(v -> selectTab(1));
-        tabFocus.setOnClickListener(v -> selectTab(2));
-        tabTasks.setOnClickListener(v -> selectTab(3));
+        btnOpenSettings.setOnClickListener(v -> openSettingsPage());
+        btnCloseSettings.setOnClickListener(v -> closeSettingsPage());
     }
 
     private void selectTab(int index) {
-        panelChat.setVisibility(index == 0 ? View.VISIBLE : View.GONE);
-        panelDevice.setVisibility(index == 1 ? View.VISIBLE : View.GONE);
-        panelFocus.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
-        panelTasks.setVisibility(index == 3 ? View.VISIBLE : View.GONE);
+        currentTab = index;
+        pageSettings.setVisibility(View.GONE);
+        bottomNavBar.setVisibility(View.VISIBLE);
 
-        updateTabStyle(tabChat, index == 0);
-        updateTabStyle(tabDevice, index == 1);
-        updateTabStyle(tabFocus, index == 2);
-        updateTabStyle(tabTasks, index == 3);
+        pageHome.setVisibility(index == 0 ? View.VISIBLE : View.GONE);
+        pageChat.setVisibility(index == 1 ? View.VISIBLE : View.GONE);
+        pageFocus.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
+        pageStudy.setVisibility(index == 3 ? View.VISIBLE : View.GONE);
+        pageLeague.setVisibility(index == 4 ? View.VISIBLE : View.GONE);
+
+        updateNavItem(navHome, labelNavHome, index == 0);
+        updateNavItem(navChat, labelNavChat, index == 1);
+        updateNavItem(navFocus, labelNavFocus, index == 2);
+        updateNavItem(navStudy, labelNavStudy, index == 3);
+        updateNavItem(navLeague, labelNavLeague, index == 4);
     }
 
-    private void updateTabStyle(Button btn, boolean selected) {
-        btn.setBackgroundResource(selected ? R.drawable.btn_primary : R.drawable.btn_secondary);
-        btn.setTextColor(selected ? 0xFFFFFFFF : 0xFF0F172A);
+    private void updateNavItem(LinearLayout navLayout, TextView label, boolean active) {
+        navLayout.setBackgroundResource(active ? R.drawable.pill_nav_active : 0);
+        label.setTextColor(active ? 0xFF2563EB : 0xFF64748B);
+        label.setTextSize(active ? 12 : 11);
+    }
+
+    private void openSettingsPage() {
+        pageHome.setVisibility(View.GONE);
+        pageChat.setVisibility(View.GONE);
+        pageFocus.setVisibility(View.GONE);
+        pageStudy.setVisibility(View.GONE);
+        pageLeague.setVisibility(View.GONE);
+
+        pageSettings.setVisibility(View.VISIBLE);
+        bottomNavBar.setVisibility(View.GONE);
+    }
+
+    private void closeSettingsPage() {
+        selectTab(currentTab);
+    }
+
+    // ========================================================
+    // ⚡ QUICK ACTION CAROUSEL (HOME PAGE)
+    // ========================================================
+
+    private void setupQuickCarousel() {
+        quickLamp.setOnClickListener(v -> toggleLampState());
+
+        quickFocus25.setOnClickListener(v -> {
+            selectTab(2);
+            switchFocusSubTool(0);
+            setFocusPreset(25);
+            startFocusTimer();
+        });
+
+        quickChat.setOnClickListener(v -> selectTab(1));
+
+        quickStopwatch.setOnClickListener(v -> {
+            selectTab(2);
+            switchFocusSubTool(1);
+        });
+
+        quickAlarms.setOnClickListener(v -> {
+            selectTab(2);
+            switchFocusSubTool(2);
+        });
+
+        quickLeague.setOnClickListener(v -> selectTab(4));
+
+        btnToggleRelay.setOnClickListener(v -> toggleLampState());
+        btnSyncDevice.setOnClickListener(v -> syncDeviceState());
+
+        btnQuickStartFocus.setOnClickListener(v -> {
+            selectTab(2);
+            switchFocusSubTool(0);
+            startFocusTimer();
+        });
     }
 
     // ========================================================
@@ -283,7 +395,8 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
         });
 
         chipStartFocus.setOnClickListener(v -> {
-            selectTab(2); // Switch to Focus tab
+            selectTab(2);
+            switchFocusSubTool(0);
             startFocusTimer();
         });
 
@@ -291,9 +404,7 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     }
 
     private void sendChatMessage(String userMessage) {
-        // Add user bubble
         addChatBubble(userMessage, true);
-
         tvTypingIndicator.setVisibility(View.VISIBLE);
         scrollChatToBottom();
 
@@ -313,7 +424,6 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
                     String reply = response.optString("reply", "Done!");
                     addChatBubble(reply, false);
 
-                    // If backend took an action (e.g. toggled relay lamp)
                     String action = response.optString("action_taken", "");
                     if (action.contains("relay") || action.contains("light") || action.contains("lamp")) {
                         isLampOn = !isLampOn;
@@ -324,7 +434,6 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
                 @Override
                 public void onError(String error) {
                     tvTypingIndicator.setVisibility(View.GONE);
-                    // Helpful local fallback response
                     String fallback;
                     if (userMessage.toLowerCase().contains("lamp") || userMessage.toLowerCase().contains("light")) {
                         toggleLampState();
@@ -365,7 +474,6 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
             bubble.setTextColor(0xFF0F172A);
         }
 
-        // Limit bubble width to 80% screen
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -383,124 +491,42 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     }
 
     // ========================================================
-    // 🖥️ ASSISTANT & BLE PROVISIONING
+    // ⏱️ FOCUS & PRODUCTIVITY HUB
     // ========================================================
 
-    private void setupBleControls() {
-        btnBleScan.setOnClickListener(v -> {
-            if (!hasRequiredPermissions()) {
-                checkAndRequestPermissions();
-                return;
-            }
-            if (!bleManager.isBluetoothEnabled()) {
-                requestEnableBluetooth();
-                return;
-            }
+    private void setupFocusHub() {
+        subTabPomodoro.setOnClickListener(v -> switchFocusSubTool(0));
+        subTabTimer.setOnClickListener(v -> switchFocusSubTool(0)); // Shared timer engine
+        subTabStopwatch.setOnClickListener(v -> switchFocusSubTool(1));
+        subTabAlarms.setOnClickListener(v -> switchFocusSubTool(2));
+        subTabReminders.setOnClickListener(v -> switchFocusSubTool(3));
 
-            if (bleManager.isScanning()) {
-                bleManager.stopScan();
-                pbScanning.setVisibility(View.GONE);
-                tvBleProgress.setText("Scan cancelled");
-            } else {
-                pbScanning.setVisibility(View.VISIBLE);
-                tvBleProgress.setText("Searching for DeskMate AI Assistant…");
-                containerDiscoveredDevice.setVisibility(View.GONE);
-                bleManager.startScan();
-            }
-        });
-
-        btnConnectDevice.setOnClickListener(v -> {
-            if (discoveredDevice != null) {
-                tvBleProgress.setText("Connecting to " + discoveredDevice.getName() + "…");
-                bleManager.connect(discoveredDevice.getDevice());
-            }
-        });
-
-        btnSendWifi.setOnClickListener(v -> {
-            String ssid = etWifiSsid.getText().toString().trim();
-            String pass = etWifiPass.getText().toString().trim();
-            if (ssid.isEmpty()) {
-                Toast.makeText(this, "Please enter Wi-Fi network name", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            tvBleProgress.setText("Provisioning Wi-Fi to AI Assistant…");
-            bleManager.provisionWifi(ssid, pass);
-        });
-    }
-
-    private void setupHardwareControls() {
-        btnToggleRelay.setOnClickListener(v -> toggleLampState());
-
-        btnSyncDevice.setOnClickListener(v -> syncDeviceState());
-
-        btnSaveHost.setOnClickListener(v -> {
-            String host = etBackendHost.getText().toString().trim();
-            prefs.edit().putString(KEY_BACKEND_HOST, host).apply();
-            Toast.makeText(this, "Saved: " + host, Toast.LENGTH_SHORT).show();
-            syncDeviceState();
-        });
-    }
-
-    private void toggleLampState() {
-        isLampOn = !isLampOn;
-        updateLampButtonUI();
-
-        String host = getBackendHost();
-        try {
-            JSONObject payload = new JSONObject();
-            payload.put("state", isLampOn);
-            backendClient.post(host + "/api/device/relay", payload, new BackendClient.JsonObjectCallback() {
-                @Override
-                public void onSuccess(JSONObject response) {
-                    Toast.makeText(MainActivity.this, "Lamp " + (isLampOn ? "ON" : "OFF"), Toast.LENGTH_SHORT).show();
-                }
-                @Override
-                public void onError(String error) {}
-            });
-        } catch (Exception ignored) {}
-    }
-
-    private void updateLampButtonUI() {
-        btnToggleRelay.setText(isLampOn ? "💡 Lamp: ON" : "💡 Lamp: OFF");
-        btnToggleRelay.setBackgroundResource(isLampOn ? R.drawable.btn_primary : R.drawable.btn_secondary);
-        btnToggleRelay.setTextColor(isLampOn ? 0xFFFFFFFF : 0xFF0F172A);
-    }
-
-    private void syncDeviceState() {
-        String host = getBackendHost();
-        tvOledMode.setText("Syncing with backend…");
-        backendClient.getObject(host + "/api/device/status", new BackendClient.JsonObjectCallback() {
-            @Override
-            public void onSuccess(JSONObject response) {
-                tvOledMode.setText("DeskMate AI Synced: OK");
-                badgeStatus.setText("Online");
-                badgeStatus.setTextColor(0xFF059669);
-                Toast.makeText(MainActivity.this, "Assistant status synced!", Toast.LENGTH_SHORT).show();
-            }
-            @Override
-            public void onError(String error) {
-                tvOledMode.setText("Offline (Local BLE Active)");
-            }
-        });
-    }
-
-    private String getBackendHost() {
-        return etBackendHost.getText().toString().trim();
-    }
-
-    // ========================================================
-    // ⏱️ FOCUS & POMODORO
-    // ========================================================
-
-    private void setupFocusControls() {
         btnPreset5.setOnClickListener(v -> setFocusPreset(5));
         btnPreset15.setOnClickListener(v -> setFocusPreset(15));
         btnPreset25.setOnClickListener(v -> setFocusPreset(25));
+        btnPreset45.setOnClickListener(v -> setFocusPreset(45));
 
         btnStartFocus.setOnClickListener(v -> {
             if (isFocusRunning) stopFocusTimer();
             else startFocusTimer();
         });
+    }
+
+    private void switchFocusSubTool(int toolIndex) {
+        sectionPomodoro.setVisibility(toolIndex == 0 ? View.VISIBLE : View.GONE);
+        sectionStopwatch.setVisibility(toolIndex == 1 ? View.VISIBLE : View.GONE);
+        sectionAlarms.setVisibility(toolIndex == 2 ? View.VISIBLE : View.GONE);
+        sectionReminders.setVisibility(toolIndex == 3 ? View.VISIBLE : View.GONE);
+
+        updateSubChipStyle(subTabPomodoro, toolIndex == 0);
+        updateSubChipStyle(subTabStopwatch, toolIndex == 1);
+        updateSubChipStyle(subTabAlarms, toolIndex == 2);
+        updateSubChipStyle(subTabReminders, toolIndex == 3);
+    }
+
+    private void updateSubChipStyle(TextView chip, boolean active) {
+        chip.setBackgroundResource(active ? R.drawable.chip_active_bg : R.drawable.chip_bg);
+        chip.setTextColor(active ? 0xFFFFFFFF : 0xFF0F172A);
     }
 
     private void setFocusPreset(int minutes) {
@@ -509,9 +535,17 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
         focusRemainingSec = minutes * 60;
         updateFocusDisplay();
 
-        updateTabStyle(btnPreset5, minutes == 5);
-        updateTabStyle(btnPreset15, minutes == 15);
-        updateTabStyle(btnPreset25, minutes == 25);
+        btnPreset5.setBackgroundResource(minutes == 5 ? R.drawable.btn_primary : R.drawable.btn_secondary);
+        btnPreset5.setTextColor(minutes == 5 ? 0xFFFFFFFF : 0xFF0F172A);
+
+        btnPreset15.setBackgroundResource(minutes == 15 ? R.drawable.btn_primary : R.drawable.btn_secondary);
+        btnPreset15.setTextColor(minutes == 15 ? 0xFFFFFFFF : 0xFF0F172A);
+
+        btnPreset25.setBackgroundResource(minutes == 25 ? R.drawable.btn_primary : R.drawable.btn_secondary);
+        btnPreset25.setTextColor(minutes == 25 ? 0xFFFFFFFF : 0xFF0F172A);
+
+        btnPreset45.setBackgroundResource(minutes == 45 ? R.drawable.btn_primary : R.drawable.btn_secondary);
+        btnPreset45.setTextColor(minutes == 45 ? 0xFFFFFFFF : 0xFF0F172A);
     }
 
     private void startFocusTimer() {
@@ -522,7 +556,6 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
         tvFocusSessionLabel.setText("Focusing… DeskMate OLED in sync");
         tvOledMode.setText("Mode: Pomodoro Active");
 
-        // Sync with backend
         String host = getBackendHost();
         try {
             JSONObject payload = new JSONObject();
@@ -545,7 +578,6 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
         tvFocusSessionLabel.setText("Session Paused");
         tvOledMode.setText("Mode: AI Assistant Ready");
 
-        // Sync with backend
         String host = getBackendHost();
         backendClient.post(host + "/api/pomodoro/stop", new JSONObject(), new BackendClient.JsonObjectCallback() {
             @Override public void onSuccess(JSONObject response) {}
@@ -562,7 +594,7 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
                 timerHandler.postDelayed(this, 1000);
             } else {
                 stopFocusTimer();
-                Toast.makeText(MainActivity.this, "🎉 Pomodoro complete! Great study session.", Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "🎉 Pomodoro cycle complete!", Toast.LENGTH_LONG).show();
             }
         }
     };
@@ -574,15 +606,80 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     }
 
     // ========================================================
-    // 📋 TASKS & STUDY LEAGUE
+    // ⏱️ STOPWATCH SUB-TOOL
     // ========================================================
 
-    private void setupTasksAndLeague() {
+    private void setupStopwatch() {
+        btnStartStopwatch.setOnClickListener(v -> {
+            if (isStopwatchRunning) {
+                // Pause
+                isStopwatchRunning = false;
+                stopwatchTimeBuff += SystemClock.uptimeMillis() - stopwatchBaseTime;
+                timerHandler.removeCallbacks(stopwatchRunnable);
+                btnStartStopwatch.setText("Resume");
+            } else {
+                // Start
+                isStopwatchRunning = true;
+                stopwatchBaseTime = SystemClock.uptimeMillis();
+                timerHandler.postDelayed(stopwatchRunnable, 0);
+                btnStartStopwatch.setText("Pause");
+            }
+        });
+
+        btnLapStopwatch.setOnClickListener(v -> {
+            if (isStopwatchRunning) {
+                String cur = tvStopwatchTime.getText().toString();
+                String prev = tvStopwatchLaps.getText().toString();
+                if (prev.contains("will appear")) prev = "";
+                tvStopwatchLaps.setText("Lap " + lapCounter++ + ": " + cur + "\n" + prev);
+            }
+        });
+
+        btnResetStopwatch.setOnClickListener(v -> {
+            isStopwatchRunning = false;
+            stopwatchBaseTime = 0;
+            stopwatchTimeBuff = 0;
+            lapCounter = 1;
+            timerHandler.removeCallbacks(stopwatchRunnable);
+            tvStopwatchTime.setText("00:00.00");
+            tvStopwatchLaps.setText("Laps will appear here");
+            btnStartStopwatch.setText("Start");
+        });
+    }
+
+    private final Runnable stopwatchRunnable = new Runnable() {
+        @Override
+        public void run() {
+            long timeInMs = SystemClock.uptimeMillis() - stopwatchBaseTime;
+            long updatedTime = stopwatchTimeBuff + timeInMs;
+            int secs = (int) (updatedTime / 1000);
+            int mins = secs / 60;
+            secs = secs % 60;
+            int ms = (int) ((updatedTime % 1000) / 10);
+            tvStopwatchTime.setText(String.format(Locale.US, "%02d:%02d.%02d", mins, secs, ms));
+            timerHandler.postDelayed(this, 30);
+        }
+    };
+
+    // ========================================================
+    // 📚 STUDY & TASKS HUB
+    // ========================================================
+
+    private void setupStudyHub() {
+        subTabTasks.setOnClickListener(v -> switchStudySubTool(0));
+        subTabNotes.setOnClickListener(v -> switchStudySubTool(1));
+        subTabAnalytics.setOnClickListener(v -> switchStudySubTool(2));
+
         btnAddTask.setOnClickListener(v -> {
             String title = etNewTask.getText().toString().trim();
             if (title.isEmpty()) return;
             etNewTask.setText("");
             createStudyTask(title);
+        });
+
+        btnQuizNotes.setOnClickListener(v -> {
+            selectTab(1); // Jump to AI chat
+            sendChatMessage("Quiz me on my Thermodynamics study notes");
         });
 
         btnCopyCode.setOnClickListener(v -> {
@@ -594,6 +691,16 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
                 Toast.makeText(this, "Copied " + code + " to clipboard!", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void switchStudySubTool(int toolIndex) {
+        sectionTasks.setVisibility(toolIndex == 0 ? View.VISIBLE : View.GONE);
+        sectionNotes.setVisibility(toolIndex == 1 ? View.VISIBLE : View.GONE);
+        sectionAnalytics.setVisibility(toolIndex == 2 ? View.VISIBLE : View.GONE);
+
+        updateSubChipStyle(subTabTasks, toolIndex == 0);
+        updateSubChipStyle(subTabNotes, toolIndex == 1);
+        updateSubChipStyle(subTabAnalytics, toolIndex == 2);
     }
 
     private void createStudyTask(String title) {
@@ -613,7 +720,6 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
 
                 @Override
                 public void onError(String error) {
-                    // Offline add
                     addTaskRowLocally(title, false);
                 }
             });
@@ -640,6 +746,7 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
                             addTaskRowLocally(title, done);
                         }
                     }
+                    tvMetricsTasks.setText(String.valueOf(response.length()));
                 }
             }
 
@@ -660,7 +767,7 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         );
-        params.setMargins(0, 0, 0, 12);
+        params.setMargins(0, 0, 0, 10);
         row.setLayoutParams(params);
 
         CheckBox cb = new CheckBox(this);
@@ -671,6 +778,112 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
 
         row.addView(cb);
         containerTasksList.addView(row, 0);
+    }
+
+    // ========================================================
+    // ⚙️ SETTINGS & BLE SETUP
+    // ========================================================
+
+    private void setupSettingsAndBle() {
+        btnBleScan.setOnClickListener(v -> {
+            if (!hasRequiredPermissions()) {
+                checkAndRequestPermissions();
+                return;
+            }
+            if (!bleManager.isBluetoothEnabled()) {
+                requestEnableBluetooth();
+                return;
+            }
+
+            if (bleManager.isScanning()) {
+                bleManager.stopScan();
+                pbScanning.setVisibility(View.GONE);
+                tvBleProgress.setText("Scan stopped");
+            } else {
+                pbScanning.setVisibility(View.VISIBLE);
+                tvBleProgress.setText("Searching for DeskMate…");
+                containerDiscoveredDevice.setVisibility(View.GONE);
+                bleManager.startScan();
+            }
+        });
+
+        btnConnectDevice.setOnClickListener(v -> {
+            if (discoveredDevice != null) {
+                tvBleProgress.setText("Connecting to " + discoveredDevice.getName() + "…");
+                bleManager.connect(discoveredDevice.getDevice());
+            }
+        });
+
+        btnSendWifi.setOnClickListener(v -> {
+            String ssid = etWifiSsid.getText().toString().trim();
+            String pass = etWifiPass.getText().toString().trim();
+            if (ssid.isEmpty()) {
+                Toast.makeText(this, "Please enter Wi-Fi network name", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            tvBleProgress.setText("Provisioning Wi-Fi…");
+            bleManager.provisionWifi(ssid, pass);
+        });
+
+        btnSaveHost.setOnClickListener(v -> {
+            String host = etBackendHost.getText().toString().trim();
+            prefs.edit().putString(KEY_BACKEND_HOST, host).apply();
+            Toast.makeText(this, "Saved: " + host, Toast.LENGTH_SHORT).show();
+            syncDeviceState();
+        });
+    }
+
+    private void toggleLampState() {
+        isLampOn = !isLampOn;
+        updateLampButtonUI();
+
+        String host = getBackendHost();
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("state", isLampOn);
+            backendClient.post(host + "/api/device/relay", payload, new BackendClient.JsonObjectCallback() {
+                @Override
+                public void onSuccess(JSONObject response) {
+                    Toast.makeText(MainActivity.this, "Desk Lamp " + (isLampOn ? "ON" : "OFF"), Toast.LENGTH_SHORT).show();
+                }
+                @Override
+                public void onError(String error) {}
+            });
+        } catch (Exception ignored) {}
+    }
+
+    private void updateLampButtonUI() {
+        btnToggleRelay.setText(isLampOn ? "💡 Lamp: ON" : "💡 Lamp: OFF");
+        btnToggleRelay.setBackgroundResource(isLampOn ? R.drawable.btn_primary : R.drawable.btn_secondary);
+        btnToggleRelay.setTextColor(isLampOn ? 0xFFFFFFFF : 0xFF0F172A);
+
+        quickLamp.setText(isLampOn ? "💡 Lamp: ON" : "💡 Lamp: OFF");
+        quickLamp.setBackgroundResource(isLampOn ? R.drawable.chip_active_bg : R.drawable.chip_bg);
+        quickLamp.setTextColor(isLampOn ? 0xFFFFFFFF : 0xFF0F172A);
+    }
+
+    private void syncDeviceState() {
+        String host = getBackendHost();
+        tvOledMode.setText("Syncing…");
+        backendClient.getObject(host + "/api/device/status", new BackendClient.JsonObjectCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                tvOledMode.setText("DeskMate AI: OK");
+                badgeStatus.setText("🟢 Online");
+                badgeStatus.setTextColor(0xFF059669);
+                Toast.makeText(MainActivity.this, "Status synced!", Toast.LENGTH_SHORT).show();
+            }
+            @Override
+            public void onError(String error) {
+                tvOledMode.setText("Offline (Local Active)");
+                badgeStatus.setText("🔵 BLE Mode");
+                badgeStatus.setTextColor(0xFF2563EB);
+            }
+        });
+    }
+
+    private String getBackendHost() {
+        return etBackendHost.getText().toString().trim();
     }
 
     private void updateOledClock() {
@@ -687,7 +900,7 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     public void onDeviceDiscovered(DiscoveredBleDevice device) {
         this.discoveredDevice = device;
         pbScanning.setVisibility(View.GONE);
-        tvBleProgress.setText("Discovered: " + device.getName());
+        tvBleProgress.setText("Found: " + device.getName());
 
         containerDiscoveredDevice.setVisibility(View.VISIBLE);
         tvDiscoveredName.setText(device.getName());
@@ -697,14 +910,14 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     @Override
     public void onConnectionStateChange(boolean connected, String deviceName) {
         if (connected) {
-            badgeStatus.setText("BLE: Connected");
+            badgeStatus.setText("🔵 BLE Connected");
             badgeStatus.setTextColor(0xFF059669);
             tvBleProgress.setText("Connected to " + deviceName);
             layoutWifiForm.setVisibility(View.VISIBLE);
             tvOledStatus.setText("WIFI: Config Pending | BLE: OK");
-            Toast.makeText(this, "Paired with " + deviceName + "! Enter Wi-Fi below.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Paired with " + deviceName + "!", Toast.LENGTH_SHORT).show();
         } else {
-            badgeStatus.setText("BLE: Ready");
+            badgeStatus.setText("🔵 BLE Ready");
             badgeStatus.setTextColor(0xFF2563EB);
             tvBleProgress.setText("Disconnected");
             layoutWifiForm.setVisibility(View.GONE);
@@ -720,19 +933,21 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     public void onProvisionSuccess(String assignedIp) {
         tvBleProgress.setText("Connected! IP: " + assignedIp);
         tvOledStatus.setText("WIFI: " + assignedIp + " | USB");
-        badgeStatus.setText("Online (" + assignedIp + ")");
+        badgeStatus.setText("🟢 Online (" + assignedIp + ")");
         badgeStatus.setTextColor(0xFF059669);
 
-        // Auto-configure backend host to match the new subnet
         String newHost = "http://" + assignedIp + ":8000";
         etBackendHost.setText(newHost);
         prefs.edit().putString(KEY_BACKEND_HOST, newHost).apply();
 
         new AlertDialog.Builder(this)
                 .setTitle("🎉 Wi-Fi Connected!")
-                .setMessage("Your DeskMate AI Assistant is now connected to your Wi-Fi network at IP " + assignedIp + ".\n\nYou can now chat with your AI assistant and control it seamlessly.")
-                .setPositiveButton("Start Chatting", (d, w) -> selectTab(0))
-                .setNegativeButton("OK", null)
+                .setMessage("Your DeskMate AI Assistant is now online at IP: " + assignedIp + ".\n\nYou can chat with your assistant and control hardware.")
+                .setPositiveButton("Start Chatting", (d, w) -> {
+                    closeSettingsPage();
+                    selectTab(1);
+                })
+                .setNegativeButton("OK", (d, w) -> closeSettingsPage())
                 .show();
     }
 
@@ -744,8 +959,39 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     }
 
     // ========================================================
-    // 🔒 PERMISSIONS
+    // 🔒 PERMISSIONS & BLUETOOTH
     // ========================================================
+
+    private void checkBluetoothState(boolean showDialogIfDisabled) {
+        if (!bleManager.isBluetoothEnabled()) {
+            bannerBluetooth.setVisibility(View.VISIBLE);
+            badgeStatus.setText("⚠️ BLE Off");
+            badgeStatus.setTextColor(0xFFEF4444);
+
+            if (showDialogIfDisabled) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Turn on Bluetooth")
+                        .setMessage("DeskMate AI Assistant requires Bluetooth to discover and provision your device. Turn on Bluetooth now?")
+                        .setPositiveButton("Turn On", (d, w) -> requestEnableBluetooth())
+                        .setNegativeButton("Later", null)
+                        .show();
+            }
+        } else {
+            bannerBluetooth.setVisibility(View.GONE);
+            badgeStatus.setText("🟢 Online");
+            badgeStatus.setTextColor(0xFF059669);
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void requestEnableBluetooth() {
+        try {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, REQ_ENABLE_BT);
+        } catch (Exception e) {
+            Toast.makeText(this, "Please enable Bluetooth in Android settings.", Toast.LENGTH_SHORT).show();
+        }
+    }
 
     private boolean hasRequiredPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
