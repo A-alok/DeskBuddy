@@ -33,3 +33,4 @@ public class DiscoveredBleDevice {
         return device != null ? device.getAddress() : "00:00:00:00:00:00";
     }
 }
+

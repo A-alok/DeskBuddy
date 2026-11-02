@@ -7,3 +7,4 @@
         android:width="1dp"
         android:color="@color/surface_card_stroke" />
 </shape>
+

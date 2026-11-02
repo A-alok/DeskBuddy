@@ -38,3 +38,4 @@ dependencies {
     implementation 'androidx.core:core:1.17.0'
     implementation 'androidx.activity:activity:1.11.0'
 }
+
