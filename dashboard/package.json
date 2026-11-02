@@ -1,0 +1,45 @@
+{
+  "name": "ai-deskmate-dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AI DeskMate web dashboard and Capacitor mobile shell",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "lint": "tsc -b --noEmit",
+    "cap:sync": "npm run build && cap sync",
+    "cap:add:android": "cap add android",
+    "cap:add:ios": "cap add ios",
+    "cap:open:android": "cap open android",
+    "cap:open:ios": "cap open ios",
+    "cap:run:android": "npm run build && cap sync android && cap run android",
+    "cap:live": "cap run android --live-reload --host"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/ios": "8.5.2",
+    "@capacitor/preferences": "8.0.1",
+    "@capacitor/status-bar": "8.0.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router-dom": "7.18.4",
+    "zustand": "5.0.15"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "26.6.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "7.0.2",
+    "vite": "8.3.0"
+  }
+}

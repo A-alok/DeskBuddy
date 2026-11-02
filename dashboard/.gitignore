@@ -1,0 +1,21 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+# env files (keep .env.example)
+.env
+.env.*
+!.env.example
+
+# Capacitor: the android/ project is tracked because it carries the debug
+# cleartext manifest needed for LAN demos. Its own android/.gitignore excludes
+# build output. iOS needs macOS to build, so regenerate it with `npx cap add ios`.
+ios
+
+# editors / os
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.tsbuildinfo

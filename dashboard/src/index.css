@@ -1,0 +1,157 @@
+@import 'tailwindcss';
+
+/* --------------------------------------------------------------------------
+   Design tokens. Dark-first: the device has an OLED, the dashboard matches it.
+   -------------------------------------------------------------------------- */
+@theme {
+  --color-ink-950: #e0e5ec;
+  --color-ink-900: #e6ebf2;
+  --color-ink-850: #d1d9e6;
+  --color-ink-800: #c8d0e0;
+  --color-ink-700: #a3b1c6;
+  --color-ink-600: #8a9bb2;
+  --color-ink-400: #61728a;
+  --color-ink-300: #4b5b70;
+  --color-ink-200: #313d4f;
+  --color-ink-100: #1a202c;
+
+  --color-accent: #3b82f6;
+  --color-accent-dim: #2563eb;
+
+  --color-oled: #ffffff;
+  --color-focus: #0ea5e9;
+  --color-break: #f59e0b;
+  --color-danger: #ef4444;
+
+  --shadow-neo: 5px 5px 12px #c3cfde, -5px -5px 12px #ffffff;
+  --shadow-neo-pressed: inset 3px 3px 7px #c3cfde, inset -3px -3px 7px #ffffff;
+  --shadow-neo-sm: 2px 2px 5px #c3cfde, -2px -2px 5px #ffffff;
+  --shadow-neo-glow: 0 0 15px rgba(59, 130, 246, 0.4);
+
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+
+  --radius-card: 1.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-ink-950);
+  color: var(--color-ink-200);
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    /* Hindi voice transcripts come back in Devanagari. Named explicitly so the
+       browser does not fall back to a mismatched font: Windows / Android / iOS. */
+    'Nirmala UI', 'Noto Sans Devanagari', 'Kohinoor Devanagari', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* Stop iOS rubber-banding the whole shell in the native app. */
+  overscroll-behavior-y: none;
+}
+
+/* Respect notches and the Android navigation bar in the Capacitor build. */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-x {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Tap targets should not flash blue on Android. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role='button'] {
+  touch-action: manipulation;
+}
+
+/* Thin scrollbars that do not fight the dark theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-700) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-ink-700);
+  border-radius: 9999px;
+}
+
+/* --------------------------------------------------------------------------
+   Utilities used across pages
+   -------------------------------------------------------------------------- */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+@utility card {
+  background-color: var(--color-ink-950);
+  border: 1px solid var(--color-ink-900);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-neo);
+}
+
+/* The OLED preview — deliberately crude, it is mirroring a 128x64 mono panel.
+   White, not the dashboard's green accent: the SH1106 is a one-bit panel where a
+   pixel is either lit or dark, and the physical module is white. Tinting the
+   mirror with the UI accent made it look like the device could render colour. */
+@utility oled {
+  background-color: #000;
+  color: var(--color-oled);
+  border: 1px solid var(--color-ink-700);
+  font-family: var(--font-mono);
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.8s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-ring,
+  .animate-toast-in {
+    animation: none;
+  }
+}

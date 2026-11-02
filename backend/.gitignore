@@ -1,0 +1,27 @@
+# virtualenv
+.venv/
+venv/
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# local database (development only)
+*.db
+*.db-wal
+*.db-shm
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# Generated speech fixtures for scripts/voicecheck.py
+scripts/fixtures/*.wav
+
+# Diagnostic voice recordings (VOICE_DEBUG_DIR) — contain the user's voice
+voice_debug/
