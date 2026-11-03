@@ -139,8 +139,21 @@ public class DeskMateBleManager {
                 name = result.getScanRecord().getDeviceName();
             }
 
-            // Look for DeskMate or dev boards
-            if (name != null && (name.contains("DeskMate") || name.contains("ESP32") || name.contains("DeskBuddy"))) {
+            boolean matchName = (name != null && (name.contains("DeskMate") || name.contains("ESP32") || name.contains("DeskBuddy")));
+            boolean matchService = false;
+            if (result.getScanRecord() != null && result.getScanRecord().getServiceUuids() != null) {
+                for (android.os.ParcelUuid uuid : result.getScanRecord().getServiceUuids()) {
+                    if (uuid != null && uuid.getUuid().equals(SERVICE_UUID)) {
+                        matchService = true;
+                        break;
+                    }
+                }
+            }
+
+            if (matchName || matchService) {
+                if (name == null || name.trim().isEmpty()) {
+                    name = "DeskMate-01";
+                }
                 DiscoveredBleDevice discovered = new DiscoveredBleDevice(device, result.getRssi(), name);
                 mainHandler.post(() -> {
                     if (listener != null) {

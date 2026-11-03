@@ -62,9 +62,7 @@ class ServerCallbacks : public BLEServerCallbacks {
   void onDisconnect(BLEServer *pServer) override {
     clientConnected = false;
     Serial.println("[ble] client disconnected");
-    if (advertising && !netLink::wifiConnected()) {
-      pServer->startAdvertising();
-    }
+    pServer->startAdvertising();
   }
 };
 
@@ -143,6 +141,7 @@ void begin() {
   pService->start();
   initialized = true;
   Serial.println("[ble] Bluetooth provisioning service started");
+  startAdvertising();
 }
 
 void startAdvertising() {

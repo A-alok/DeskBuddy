@@ -194,7 +194,7 @@ planned follow-up.
 
 
 
-"$env:USERPROFILE\.platformio\penv\Scripts\pio.exe" run -t upload
+& "$env:USERPROFILE\.platformio\penv\Scripts\pio.exe" run -t upload
 
 cd backend
 .\.venv\Scripts\Activate.ps1
