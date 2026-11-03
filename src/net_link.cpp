@@ -972,7 +972,9 @@ void begin() {
   WiFi.setHostname("deskmate");
   WiFi.onEvent(onWifiEvent);
   WiFi.setAutoReconnect(true);
-  WiFi.setSleep(false);  // sleep adds hundreds of ms of latency to the socket
+  // Do NOT disable Wi-Fi sleep (WiFi.setSleep(false)) when Bluetooth coexistence is enabled,
+  // as the ESP32-S3 radio arbiter requires modem sleep for Wi-Fi + BLE coexistence.
+  WiFi.setSleep(true);
   WiFi.begin(activeSsid, activePass);
   lastWifiAttemptMs = clocktime::monotonicMs();
   Serial.printf("[net] connecting to '%s' (%u char password)\n", activeSsid,

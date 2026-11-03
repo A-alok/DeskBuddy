@@ -157,8 +157,8 @@ void setup() {
 
   // Network last, and it never blocks. Everything above already works.
   Serial.println("[boot] network");
-  netLink::begin();
   bleProv::begin();
+  netLink::begin();
 
   // The device comes up as a face and stays there. Armed last, not inside
   // display::begin(), because everything between the two would have eaten into
