@@ -22,8 +22,8 @@ from .. import events as ev
 from .. import repo
 from ..config import settings
 from ..db import mongo
-from ..deps import DeviceDep
-from ..models import ChatMessage, CommandSource, Device, Note, VoiceCommand
+from ..deps import DeviceDep, UserDep
+from ..models import ChatMessage, CommandSource, Device, Note, User, VoiceCommand
 from ..realtime import hub
 from ..schemas import (
     ChatMessageRead,
@@ -58,11 +58,21 @@ def _save_debug_clip(audio: bytes) -> None:
         pass  # diagnostics must never break the voice path
 
 
-async def _history(device_id: str) -> list[dict[str, str]]:
+async def _history(device_id: str, user: Optional[User] = None) -> list[dict[str, str]]:
+    filt: dict = {}
+    if user:
+        filt["$or"] = [
+            {"user_id": user.id},
+            {"username": user.username},
+            {"device_id": user.device_id},
+        ]
+    else:
+        filt["device_id"] = device_id
+
     rows = await repo.find_many(
         mongo.chat_messages,
         ChatMessage,
-        {"device_id": device_id},
+        filt,
         sort=[("created_at", repo.DESC)],
         limit=10,
     )
@@ -319,9 +329,14 @@ async def _handle(
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(device: DeviceDep, payload: ChatRequest) -> ChatResponse:
+async def chat(device: DeviceDep, user: UserDep, payload: ChatRequest) -> ChatResponse:
     user_msg = ChatMessage(
-        device_id=device.id, role="user", content=payload.message, source=payload.source
+        device_id=device.id,
+        user_id=user.id if user else None,
+        username=user.username if user else None,
+        role="user",
+        content=payload.message,
+        source=payload.source,
     )
     await repo.insert(mongo.chat_messages, user_msg)
 
@@ -330,7 +345,12 @@ async def chat(device: DeviceDep, payload: ChatRequest) -> ChatResponse:
     )
 
     assistant_msg = ChatMessage(
-        device_id=device.id, role="assistant", content=reply, source=payload.source
+        device_id=device.id,
+        user_id=user.id if user else None,
+        username=user.username if user else None,
+        role="assistant",
+        content=reply,
+        source=payload.source,
     )
     await repo.insert(mongo.chat_messages, assistant_msg)
 
@@ -369,12 +389,23 @@ async def chat(device: DeviceDep, payload: ChatRequest) -> ChatResponse:
 @router.get("/chat/history", response_model=list[ChatMessageRead])
 async def chat_history(
     device: DeviceDep,
+    user: UserDep,
     limit: int = Query(default=50, ge=1, le=200),
 ) -> list[ChatMessageRead]:
+    filt: dict = {}
+    if user:
+        filt["$or"] = [
+            {"user_id": user.id},
+            {"username": user.username},
+            {"device_id": user.device_id},
+        ]
+    else:
+        filt["device_id"] = device.id
+
     rows = await repo.find_many(
         mongo.chat_messages,
         ChatMessage,
-        {"device_id": device.id},
+        filt,
         sort=[("created_at", repo.DESC)],
         limit=limit,
     )
@@ -382,7 +413,19 @@ async def chat_history(
 
 
 @router.delete("/chat/history")
-async def clear_chat_history(device: DeviceDep) -> dict[str, int]:
+async def clear_chat_history(device: DeviceDep, user: UserDep) -> dict[str, int]:
+    filt: dict = {}
+    if user:
+        filt["$or"] = [
+            {"user_id": user.id},
+            {"username": user.username},
+            {"device_id": user.device_id},
+        ]
+    else:
+        filt["device_id"] = device.id
+
+    res = await mongo.chat_messages.delete_many(filt)
+    return {"deleted": res.deleted_count}
     result = await mongo.chat_messages.delete_many({"device_id": device.id})
     return {"deleted": result.deleted_count}
 

@@ -53,6 +53,13 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     private static final int REQ_ENABLE_BT = 1002;
     private static final String PREFS_NAME = "deskmate_prefs";
     private static final String KEY_BACKEND_HOST = "backend_host";
+    private static final String KEY_USERNAME = "current_username";
+    private static final String KEY_DISPLAY_NAME = "current_display_name";
+    private static final String KEY_COMP_CODE = "current_comp_code";
+
+    // User Account
+    private TextView tvActiveUserInfo, tvActiveUserCode;
+    private Button btnSwitchAccount;
 
     // Top Header & Banners
     private TextView badgeStatus;
@@ -284,10 +291,18 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
         etBackendHost = findViewById(R.id.etBackendHost);
         btnSaveHost = findViewById(R.id.btnSaveHost);
 
+        tvActiveUserInfo = findViewById(R.id.tvActiveUserInfo);
+        tvActiveUserCode = findViewById(R.id.tvActiveUserCode);
+        btnSwitchAccount = findViewById(R.id.btnSwitchAccount);
+
         String savedHost = prefs.getString(KEY_BACKEND_HOST, "http://10.0.2.2:8000");
         etBackendHost.setText(savedHost);
 
+        backendClient.setUsername(getActiveUsername());
+        updateUserUI();
+
         btnEnableBluetooth.setOnClickListener(v -> requestEnableBluetooth());
+        btnSwitchAccount.setOnClickListener(v -> showAccountSwitchDialog());
     }
 
     // ========================================================
@@ -409,7 +424,7 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
         scrollChatToBottom();
 
         String host = getBackendHost();
-        String url = host + "/api/chat?device_id=deskmate-01";
+        String url = host + "/api/chat?username=" + getActiveUsername();
 
         try {
             JSONObject payload = new JSONObject();
@@ -705,7 +720,7 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
 
     private void createStudyTask(String title) {
         String host = getBackendHost();
-        String url = host + "/api/tasks?device_id=deskmate-01";
+        String url = host + "/api/tasks?username=" + getActiveUsername();
 
         try {
             JSONObject payload = new JSONObject();
@@ -730,7 +745,7 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
 
     private void loadRecentTasks() {
         String host = getBackendHost();
-        String url = host + "/api/tasks?device_id=deskmate-01";
+        String url = host + "/api/tasks?username=" + getActiveUsername();
 
         backendClient.getArray(url, new BackendClient.JsonArrayCallback() {
             @Override
@@ -865,19 +880,125 @@ public class MainActivity extends AppCompatActivity implements DeskMateBleManage
     private void syncDeviceState() {
         String host = getBackendHost();
         tvOledMode.setText("Syncing…");
-        backendClient.getObject(host + "/api/device/status", new BackendClient.JsonObjectCallback() {
+        String url = host + "/api/snapshot?username=" + getActiveUsername();
+        backendClient.getObject(url, new BackendClient.JsonObjectCallback() {
             @Override
             public void onSuccess(JSONObject response) {
-                tvOledMode.setText("DeskMate AI: OK");
-                badgeStatus.setText("🟢 Online");
-                badgeStatus.setTextColor(0xFF059669);
-                Toast.makeText(MainActivity.this, "Status synced!", Toast.LENGTH_SHORT).show();
+                JSONObject dev = response.optJSONObject("device");
+                boolean online = dev != null && (dev.optBoolean("online", false)
+                        || dev.optBoolean("websocket_connected", false)
+                        || dev.optBoolean("wifi_connected", false));
+
+                if (online) {
+                    tvOledMode.setText("DeskMate AI: OK");
+                    badgeStatus.setText("🟢 Online");
+                    badgeStatus.setTextColor(0xFF059669);
+                } else {
+                    tvOledMode.setText("Offline (Local Active)");
+                    badgeStatus.setText("🔵 BLE Mode");
+                    badgeStatus.setTextColor(0xFF2563EB);
+                }
+
+                // Update real independent metrics for this user
+                JSONObject analytics = response.optJSONObject("analytics");
+                if (analytics != null) {
+                    int focusMins = analytics.optInt("focus_minutes_today", 0);
+                    int cycles = analytics.optInt("pomodoro_cycles_today", 0);
+                    int openTasks = analytics.optInt("tasks_open", 0);
+                    int streak = analytics.optInt("current_streak_days", 0);
+
+                    tvMetricsFocus.setText(focusMins + "m");
+                    tvMetricsCycles.setText(String.valueOf(cycles));
+                    tvMetricsTasks.setText(String.valueOf(openTasks));
+                    tvMetricsStreak.setText(streak + "d");
+                }
+                Toast.makeText(MainActivity.this, "Synced user data!", Toast.LENGTH_SHORT).show();
             }
+
             @Override
             public void onError(String error) {
                 tvOledMode.setText("Offline (Local Active)");
                 badgeStatus.setText("🔵 BLE Mode");
                 badgeStatus.setTextColor(0xFF2563EB);
+            }
+        });
+    }
+
+    private String getActiveUsername() {
+        return prefs.getString(KEY_USERNAME, "alok17");
+    }
+
+    private String getActiveDisplayName() {
+        return prefs.getString(KEY_DISPLAY_NAME, "Alok");
+    }
+
+    private String getActiveCompetitionCode() {
+        return prefs.getString(KEY_COMP_CODE, "ALOK-7572");
+    }
+
+    private void setActiveUser(String username, String displayName, String compCode) {
+        prefs.edit()
+            .putString(KEY_USERNAME, username)
+            .putString(KEY_DISPLAY_NAME, displayName)
+            .putString(KEY_COMP_CODE, compCode)
+            .apply();
+        backendClient.setUsername(username);
+        updateUserUI();
+        loadRecentTasks();
+        syncDeviceState();
+    }
+
+    private void updateUserUI() {
+        if (tvActiveUserInfo != null) {
+            tvActiveUserInfo.setText("Logged in as: " + getActiveDisplayName() + " (@" + getActiveUsername() + ")");
+        }
+        if (tvActiveUserCode != null) {
+            tvActiveUserCode.setText("Competition Code: " + getActiveCompetitionCode());
+        }
+        if (tvCompetitionCode != null) {
+            tvCompetitionCode.setText(getActiveCompetitionCode());
+        }
+    }
+
+    private void showAccountSwitchDialog() {
+        String host = getBackendHost();
+        Toast.makeText(this, "Fetching registered accounts...", Toast.LENGTH_SHORT).show();
+        backendClient.getArray(host + "/api/auth/accounts", new BackendClient.JsonArrayCallback() {
+            @Override
+            public void onSuccess(JSONArray accounts) {
+                if (accounts.length() == 0) {
+                    Toast.makeText(MainActivity.this, "No accounts found on server", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                String[] names = new String[accounts.length()];
+                for (int i = 0; i < accounts.length(); i++) {
+                    JSONObject acc = accounts.optJSONObject(i);
+                    if (acc != null) {
+                        String display = acc.optString("display_name", "User");
+                        String user = acc.optString("username", "user");
+                        String code = acc.optString("competition_code", "");
+                        names[i] = display + " (@" + user + ") — " + code;
+                    }
+                }
+                new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Select Active User Account")
+                    .setItems(names, (dialog, which) -> {
+                        JSONObject selected = accounts.optJSONObject(which);
+                        if (selected != null) {
+                            String uname = selected.optString("username", "alok17");
+                            String dname = selected.optString("display_name", "Alok");
+                            String code = selected.optString("competition_code", "ALOK-7572");
+                            setActiveUser(uname, dname, code);
+                            Toast.makeText(MainActivity.this, "Switched to " + dname + "!", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(MainActivity.this, "Could not fetch accounts: " + error, Toast.LENGTH_LONG).show();
             }
         });
     }

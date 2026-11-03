@@ -1,18 +1,4 @@
-"""Study notes + AI quizzing.
-
-Upload exam-prep files (PDF, Word, Excel, text), the backend extracts the text,
-and the AI generates questions from it and grades your answers. Only the
-extracted text is stored, never the original file.
-
-Flow:
-    POST /api/notes/upload   file -> extract text -> store Note
-    GET  /api/notes          list notes (no text)
-    GET  /api/notes/{id}     one note, with text
-    DELETE /api/notes/{id}
-    POST /api/quiz/start     {note_id, count, style} -> QuizSession with questions
-    GET  /api/quiz/{id}      current session state
-    POST /api/quiz/{id}/answer {answer} -> grades, advances, returns session
-"""
+"""Study notes + AI quizzing with independent per-user data isolation."""
 
 from __future__ import annotations
 
@@ -22,7 +8,7 @@ from .. import events as ev
 from .. import repo
 from ..config import settings
 from ..db import mongo
-from ..deps import DeviceDep
+from ..deps import DeviceDep, UserDep
 from ..models import CommandSource, Note, QuizQuestionDoc, QuizSession
 from ..realtime import hub
 from ..schemas import NoteRead, OkResponse, QuizAnswerRequest, QuizSessionRead, QuizStartRequest
@@ -40,28 +26,50 @@ router = APIRouter(tags=["study"])
 
 
 @router.get("/notes", response_model=list[NoteRead])
-async def list_notes(device: DeviceDep, limit: int = Query(default=50, ge=1, le=200)) -> list[NoteRead]:
+async def list_notes(
+    device: DeviceDep, user: UserDep, limit: int = Query(default=50, ge=1, le=200)
+) -> list[NoteRead]:
+    filt: dict = {}
+    if user:
+        filt["$or"] = [
+            {"user_id": user.id},
+            {"username": user.username},
+            {"device_id": user.device_id},
+        ]
+    else:
+        filt["device_id"] = device.id
+
     notes = await repo.find_many(
         mongo.notes,
         Note,
-        {"device_id": device.id},
+        filt,
         sort=[("created_at", repo.DESC)],
         limit=limit,
     )
-    return [note_read(n) for n in notes]  # list omits the full text on purpose
+    return [note_read(n) for n in notes]
 
 
 @router.get("/notes/{note_id}", response_model=NoteRead)
-async def get_note(device: DeviceDep, note_id: str) -> NoteRead:
+async def get_note(device: DeviceDep, user: UserDep, note_id: str) -> NoteRead:
     note = await repo.find_by_id(mongo.notes, Note, note_id)
-    if note is None or note.device_id != device.id:
+    if note is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
+
+    is_owner = (
+        note.device_id == device.id
+        or (user and (note.user_id == user.id or note.username == user.username))
+        or (user and getattr(user, "device_id", None) == note.device_id)
+    )
+    if not is_owner:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
+
     return note_read(note, include_text=True)
 
 
 @router.post("/notes/upload", response_model=NoteRead, status_code=status.HTTP_201_CREATED)
 async def upload_note(
     device: DeviceDep,
+    user: UserDep,
     file: UploadFile = File(..., description="PDF, Word (.docx), Excel (.xlsx) or text file"),
 ) -> NoteRead:
     data = await file.read()
@@ -77,12 +85,13 @@ async def upload_note(
             file.filename or "note", data, max_chars=settings.notes_max_extract_chars
         )
     except extract_service.ExtractError as exc:
-        # 422: the request was valid, the file's content was not usable.
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
     title = (file.filename or "Untitled note").rsplit("/", 1)[-1]
     note = Note(
         device_id=device.id,
+        user_id=user.id if user else None,
+        username=user.username if user else None,
         title=title,
         kind=extracted.kind,
         text=extracted.text,
@@ -91,9 +100,10 @@ async def upload_note(
     )
     await repo.insert(mongo.notes, note)
 
-    # Keep the collection bounded: drop the oldest notes past the cap.
+    # Keep the user's collection bounded
+    bound_filter = {"user_id": user.id} if user else {"device_id": device.id}
     existing = await repo.find_many(
-        mongo.notes, Note, {"device_id": device.id}, sort=[("created_at", repo.DESC)]
+        mongo.notes, Note, bound_filter, sort=[("created_at", repo.DESC)]
     )
     for old in existing[settings.notes_max_count :]:
         await repo.delete_by_id(mongo.notes, old.id)
@@ -104,10 +114,19 @@ async def upload_note(
 
 
 @router.delete("/notes/{note_id}", response_model=OkResponse)
-async def delete_note(device: DeviceDep, note_id: str) -> OkResponse:
+async def delete_note(device: DeviceDep, user: UserDep, note_id: str) -> OkResponse:
     note = await repo.find_by_id(mongo.notes, Note, note_id)
-    if note is None or note.device_id != device.id:
+    if note is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
+
+    is_owner = (
+        note.device_id == device.id
+        or (user and (note.user_id == user.id or note.username == user.username))
+        or (user and getattr(user, "device_id", None) == note.device_id)
+    )
+    if not is_owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied for this note")
+
     await repo.delete_by_id(mongo.notes, note_id)
     await hub.publish(ev.NOTE_DELETED, {"id": note_id}, device_id=device.id, origin="dashboard")
     return OkResponse(detail=note_id)
@@ -119,9 +138,9 @@ async def delete_note(device: DeviceDep, note_id: str) -> OkResponse:
 
 
 @router.post("/quiz/start", response_model=QuizSessionRead, status_code=status.HTTP_201_CREATED)
-async def start_quiz(device: DeviceDep, payload: QuizStartRequest) -> QuizSessionRead:
+async def start_quiz(device: DeviceDep, user: UserDep, payload: QuizStartRequest) -> QuizSessionRead:
     note = await repo.find_by_id(mongo.notes, Note, payload.note_id)
-    if note is None or note.device_id != device.id:
+    if note is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
 
     if not quiz_service.available():
@@ -141,6 +160,8 @@ async def start_quiz(device: DeviceDep, payload: QuizStartRequest) -> QuizSessio
 
     session = QuizSession(
         device_id=device.id,
+        user_id=user.id if user else None,
+        username=user.username if user else None,
         note_id=note.id,
         note_title=note.title,
         questions=[
@@ -156,19 +177,31 @@ async def start_quiz(device: DeviceDep, payload: QuizStartRequest) -> QuizSessio
 
 
 @router.get("/quiz/{session_id}", response_model=QuizSessionRead)
-async def get_quiz(device: DeviceDep, session_id: str) -> QuizSessionRead:
+async def get_quiz(device: DeviceDep, user: UserDep, session_id: str) -> QuizSessionRead:
     session = await repo.find_by_id(mongo.quiz_sessions, QuizSession, session_id)
-    if session is None or session.device_id != device.id:
+    if session is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
     return quiz_session_read(session)
 
 
 @router.get("/quiz", response_model=list[QuizSessionRead])
-async def list_quizzes(device: DeviceDep, limit: int = Query(default=10, ge=1, le=50)) -> list[QuizSessionRead]:
+async def list_quizzes(
+    device: DeviceDep, user: UserDep, limit: int = Query(default=10, ge=1, le=50)
+) -> list[QuizSessionRead]:
+    filt: dict = {}
+    if user:
+        filt["$or"] = [
+            {"user_id": user.id},
+            {"username": user.username},
+            {"device_id": user.device_id},
+        ]
+    else:
+        filt["device_id"] = device.id
+
     sessions = await repo.find_many(
         mongo.quiz_sessions,
         QuizSession,
-        {"device_id": device.id},
+        filt,
         sort=[("created_at", repo.DESC)],
         limit=limit,
     )
@@ -176,33 +209,42 @@ async def list_quizzes(device: DeviceDep, limit: int = Query(default=10, ge=1, l
 
 
 @router.post("/quiz/{session_id}/answer", response_model=QuizSessionRead)
-async def answer_quiz(device: DeviceDep, session_id: str, payload: QuizAnswerRequest) -> QuizSessionRead:
+async def answer_quiz(
+    device: DeviceDep, user: UserDep, session_id: str, payload: QuizAnswerRequest
+) -> QuizSessionRead:
     session = await repo.find_by_id(mongo.quiz_sessions, QuizSession, session_id)
-    if session is None or session.device_id != device.id:
+    if session is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+
     if session.finished:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This quiz is already finished.")
+        return quiz_session_read(session)
+
     if session.current_index >= len(session.questions):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="No question is pending.")
+        session.finished = True
+        await repo.replace(mongo.quiz_sessions, QuizSession, session.id, session)
+        return quiz_session_read(session)
 
-    note = await repo.find_by_id(mongo.notes, Note, session.note_id)
-    question = session.questions[session.current_index]
-
-    grade = await quiz_service.grade_answer(
-        question.question, question.answer, payload.answer, note.text if note else ""
+    current_q = session.questions[session.current_index]
+    graded = await quiz_service.grade_answer(
+        question=current_q.question,
+        reference_answer=current_q.answer,
+        user_answer=payload.answer,
     )
-    question.user_answer = payload.answer
-    question.correct = grade.correct
-    question.score = grade.score
-    question.feedback = grade.feedback
 
-    if grade.correct:
+    current_q.user_answer = payload.answer
+    current_q.correct = graded.correct
+    current_q.score = graded.score
+    current_q.feedback = graded.feedback
+    if graded.correct:
         session.correct_count += 1
+
     session.current_index += 1
-    session.finished = session.current_index >= len(session.questions)
+    if session.current_index >= len(session.questions):
+        session.finished = True
+
     session.updated_at = utcnow()
-    await repo.replace(mongo.quiz_sessions, session)
+    await repo.replace(mongo.quiz_sessions, QuizSession, session.id, session)
 
     read = quiz_session_read(session)
-    await hub.publish(ev.QUIZ_GRADED, read.model_dump(mode="json"), device_id=device.id, origin="dashboard")
+    await hub.publish(ev.QUIZ_ANSWERED, read.model_dump(mode="json"), device_id=device.id, origin="dashboard")
     return read

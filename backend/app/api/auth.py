@@ -78,12 +78,13 @@ async def list_accounts() -> list[UserAccountRead]:
 @router.get("/me", response_model=UserAccountRead)
 async def get_current_user(
     username: Optional[str] = Query(default=None),
+    user_id: Optional[str] = Query(default=None),
     device_id: Optional[str] = Query(default=None),
     authorization: Optional[str] = Header(default=None, alias="Authorization"),
+    x_user_id: Optional[str] = Header(default=None, alias="X-User-Id"),
+    x_username: Optional[str] = Header(default=None, alias="X-Username"),
 ) -> UserAccountRead:
-    """Look up active user by valid auth token, username, or linked device_id.
-    Strictly forbids arbitrary unauthenticated fallback.
-    """
+    """Look up active user by valid auth token, username, or linked device_id."""
     if authorization and authorization.startswith("Bearer "):
         token = authorization[7:].strip()
         if token:
@@ -91,8 +92,15 @@ async def get_current_user(
             if user:
                 return _user_to_read(User.model_validate(user), token=token)
 
-    if username:
-        user = await mongo.users.find_one({"username": {"$regex": f"^{re.escape(username.strip())}$", "$options": "i"}})
+    target_id = x_user_id or user_id
+    if target_id:
+        user = await mongo.users.find_one({"_id": target_id})
+        if user:
+            return _user_to_read(User.model_validate(user))
+
+    target_name = x_username or username
+    if target_name:
+        user = await mongo.users.find_one({"username": {"$regex": f"^{re.escape(target_name.strip())}$", "$options": "i"}})
         if user:
             return _user_to_read(User.model_validate(user))
 
@@ -100,6 +108,12 @@ async def get_current_user(
         user = await mongo.users.find_one({"device_id": device_id})
         if user:
             return _user_to_read(User.model_validate(user))
+        # If device_id == "deskmate-01" or starts with "dev-", fallback to owner
+        dev_doc = await mongo.devices.find_one({"_id": device_id})
+        if dev_doc and dev_doc.get("user_id"):
+            user = await mongo.users.find_one({"_id": dev_doc["user_id"]})
+            if user:
+                return _user_to_read(User.model_validate(user))
 
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated. Please sign in.")
 

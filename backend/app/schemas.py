@@ -231,6 +231,8 @@ class TaskUpdate(BaseModel):
 class TaskRead(ApiModel):
     id: str
     device_id: str
+    user_id: Optional[str] = None
+    username: Optional[str] = None
     title: str
     notes: Optional[str] = None
     priority: Priority
@@ -321,6 +323,8 @@ class ChatRequest(BaseModel):
 class ChatMessageRead(ApiModel):
     id: str
     device_id: str
+    user_id: Optional[str] = None
+    username: Optional[str] = None
     role: str
     content: str
     source: CommandSource
@@ -468,6 +472,8 @@ class OkResponse(BaseModel):
 class NoteRead(ApiModel):
     id: str
     device_id: str
+    user_id: Optional[str] = None
+    username: Optional[str] = None
     title: str
     kind: str
     char_count: int
@@ -506,6 +512,8 @@ class QuizQuestionRead(ApiModel):
 class QuizSessionRead(ApiModel):
     id: str
     device_id: str
+    user_id: Optional[str] = None
+    username: Optional[str] = None
     note_id: str
     note_title: str
     questions: list[QuizQuestionRead] = Field(default_factory=list)

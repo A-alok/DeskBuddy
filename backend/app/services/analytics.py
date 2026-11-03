@@ -15,7 +15,7 @@ from typing import Optional
 
 from .. import repo
 from ..db import mongo
-from ..models import FocusSession, SessionKind, Task
+from ..models import FocusSession, SessionKind, Task, User
 from ..schemas import AnalyticsRead, DailyPoint
 from ..utils import as_utc, utcnow
 from .alarms import tz_offset_for
@@ -28,7 +28,9 @@ def _local_date(value: Optional[datetime], offset_minutes: int) -> Optional[date
     return (aware + timedelta(minutes=offset_minutes)).date()
 
 
-async def build(device_id: str, range_days: int = 7) -> AnalyticsRead:
+async def build(
+    device_id: str, range_days: int = 7, user: Optional[User] = None
+) -> AnalyticsRead:
     range_days = max(1, min(range_days, 90))
     offset = await tz_offset_for(device_id)
 
@@ -43,9 +45,21 @@ async def build(device_id: str, range_days: int = 7) -> AnalyticsRead:
 
     focus_kind = SessionKind.POMODORO_FOCUS.value
 
+    # Match condition for user or device
+    if user:
+        user_match = {
+            "$or": [
+                {"user_id": user.id},
+                {"username": user.username},
+                {"device_id": user.device_id},
+            ]
+        }
+    else:
+        user_match = {"device_id": device_id}
+
     # --- all-time totals, server-side -------------------------------------- #
     totals_pipeline = [
-        {"$match": {"device_id": device_id, "kind": focus_kind}},
+        {"$match": {**user_match, "kind": focus_kind}},
         {
             "$group": {
                 "_id": None,
@@ -64,7 +78,7 @@ async def build(device_id: str, range_days: int = 7) -> AnalyticsRead:
     windowed = await repo.find_many(
         mongo.focus_sessions,
         FocusSession,
-        {"device_id": device_id, "kind": focus_kind, "started_at": {"$gte": cutoff_utc}},
+        {**user_match, "kind": focus_kind, "started_at": {"$gte": cutoff_utc}},
         sort=[("started_at", repo.ASC)],
         limit=2000,
     )
@@ -94,15 +108,15 @@ async def build(device_id: str, range_days: int = 7) -> AnalyticsRead:
             point.sessions += 1
 
     # --- tasks ------------------------------------------------------------- #
-    tasks_open = await mongo.tasks.count_documents({"device_id": device_id, "done": False})
+    tasks_open = await mongo.tasks.count_documents({**user_match, "done": False})
     tasks_completed_total = await mongo.tasks.count_documents(
-        {"device_id": device_id, "done": True}
+        {**user_match, "done": True}
     )
 
     completed = await repo.find_many(
         mongo.tasks,
         Task,
-        {"device_id": device_id, "done": True, "completed_at": {"$gte": cutoff_utc}},
+        {**user_match, "done": True, "completed_at": {"$gte": cutoff_utc}},
         limit=2000,
     )
     tasks_completed_today = 0

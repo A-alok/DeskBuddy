@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, status
 from .. import events as ev
 from .. import repo
 from ..db import mongo
-from ..deps import DeviceDep
+from ..deps import DeviceDep, UserDep
 from ..models import CompetitionInvite, Device, FocusSession, InviteStatus, QuizSession, Task, User
 from ..realtime import hub
 from ..schemas import (
@@ -69,11 +69,30 @@ async def _get_user_for_device(device: Device) -> Optional[User]:
     return None
 
 
-async def compute_stats_for_device(dev_id: str) -> dict[str, Any]:
-    """Calculate 100% genuine stats and XP for a device from MongoDB records."""
+async def compute_stats_for_device(dev_id: str, user: Optional[User] = None) -> dict[str, Any]:
+    """Calculate 100% genuine stats and XP for a user/device from MongoDB records."""
+    if not user:
+        user_doc = await mongo.users.find_one({"device_id": dev_id})
+        if not user_doc and dev_id.startswith("dev-"):
+            uname = dev_id[4:]
+            user_doc = await mongo.users.find_one({"username": {"$regex": f"^{re.escape(uname)}$", "$options": "i"}})
+        if user_doc:
+            user = User.model_validate(user_doc)
+
+    if user:
+        filt = {
+            "$or": [
+                {"user_id": user.id},
+                {"username": user.username},
+                {"device_id": user.device_id},
+            ]
+        }
+    else:
+        filt = {"device_id": dev_id}
+
     # 1. Pomodoro Focus
     focus_sessions = await repo.find_many(
-        mongo.focus_sessions, FocusSession, {"device_id": dev_id}
+        mongo.focus_sessions, FocusSession, filt
     )
     completed_focus = [s for s in focus_sessions if s.completed]
     total_focus_seconds = sum(
@@ -84,7 +103,7 @@ async def compute_stats_for_device(dev_id: str) -> dict[str, Any]:
     pomodoro_xp = (pomodoro_cycles * 25) + ((total_focus_minutes // 10) * 5)
 
     # 2. Tasks
-    all_tasks = await repo.find_many(mongo.tasks, Task, {"device_id": dev_id})
+    all_tasks = await repo.find_many(mongo.tasks, Task, filt)
     personal_tasks = [
         t for t in all_tasks if getattr(t, "list_type", "personal") != "competitive"
     ]
@@ -99,7 +118,7 @@ async def compute_stats_for_device(dev_id: str) -> dict[str, Any]:
 
     # 3. Quizzes
     quiz_sessions = await repo.find_many(
-        mongo.quiz_sessions, QuizSession, {"device_id": dev_id}
+        mongo.quiz_sessions, QuizSession, filt
     )
     total_questions = sum(len(q.questions) for q in quiz_sessions if q.questions)
     total_correct = sum(q.correct_count for q in quiz_sessions)
@@ -534,25 +553,26 @@ async def remove_competitor(device: DeviceDep, competition_code: str) -> OkRespo
 
 
 @router.get("/summary", response_model=CompetitiveSummaryRead)
-async def get_summary(device: DeviceDep) -> CompetitiveSummaryRead:
-    user = await _get_user_for_device(device)
-    my_code = getattr(user, "competition_code", None) or _get_device_code(device)
-    stats = await compute_stats_for_device(device.id)
+async def get_summary(device: DeviceDep, user: UserDep) -> CompetitiveSummaryRead:
+    active_user = user or await _get_user_for_device(device)
+    my_code = getattr(active_user, "competition_code", None) or _get_device_code(device)
+    stats = await compute_stats_for_device(device.id, user=active_user)
 
-    competitors = getattr(user, "competitors", []) if user else getattr(device, "competitors", []) or []
+    competitors = getattr(active_user, "competitors", []) if active_user else getattr(device, "competitors", []) or []
 
     # Calculate rank dynamically among real competitors in circle
     my_xp = stats["total_xp"]
     rank = 1
     for code in competitors:
         peer_doc = await mongo.users.find_one({"competition_code": code})
-        peer_dev_id = peer_doc.get("device_id") if peer_doc else None
+        peer_user = User.model_validate(peer_doc) if peer_doc else None
+        peer_dev_id = peer_user.device_id if peer_user else None
         if not peer_dev_id:
             peer_dev = await mongo.devices.find_one({"$or": [{"competition_code": code}, {"referral_code": code}]})
             if peer_dev:
                 peer_dev_id = peer_dev["_id"]
         if peer_dev_id:
-            peer_stats = await compute_stats_for_device(peer_dev_id)
+            peer_stats = await compute_stats_for_device(peer_dev_id, user=peer_user)
             if peer_stats["total_xp"] > my_xp:
                 rank += 1
 
@@ -672,25 +692,25 @@ async def get_summary(device: DeviceDep) -> CompetitiveSummaryRead:
 
 
 @router.get("/leaderboard", response_model=list[LeaderboardEntry])
-async def get_leaderboard(device: DeviceDep) -> list[LeaderboardEntry]:
+async def get_leaderboard(device: DeviceDep, user: UserDep) -> list[LeaderboardEntry]:
     """Return strictly real accounts: the current user and their added competitors. NO MOCK DATA!"""
-    user = await _get_user_for_device(device)
-    my_code = getattr(user, "competition_code", None) or _get_device_code(device)
-    my_stats = await compute_stats_for_device(device.id)
+    active_user = user or await _get_user_for_device(device)
+    my_code = getattr(active_user, "competition_code", None) or _get_device_code(device)
+    my_stats = await compute_stats_for_device(device.id, user=active_user)
 
     competitor_codes: list[str] = list(
-        getattr(user, "competitors", []) if user else getattr(device, "competitors", []) or []
+        getattr(active_user, "competitors", []) if active_user else getattr(device, "competitors", []) or []
     )
 
     entries: list[LeaderboardEntry] = []
 
     # 1. Current user entry
-    my_name = getattr(user, "display_name", None) or f"{device.name} (You)"
+    my_name = getattr(active_user, "display_name", None) or f"{device.name} (You)"
     entries.append(
         LeaderboardEntry(
             rank=0,
             name=f"{my_name} (You)",
-            avatar=getattr(user, "avatar", "⚡") or "⚡",
+            avatar=getattr(active_user, "avatar", "⚡") or "⚡",
             league=my_stats["league"],
             level=my_stats["level"],
             total_xp=my_stats["total_xp"],
@@ -709,16 +729,17 @@ async def get_leaderboard(device: DeviceDep) -> list[LeaderboardEntry]:
         seen_codes.add(code)
 
         peer_user_doc = await mongo.users.find_one({"competition_code": code})
+        peer_user = User.model_validate(peer_user_doc) if peer_user_doc else None
         peer_dev_id = None
         peer_name = "Classmate"
         peer_avatar = "🎓"
         peer_status = "In Study League"
 
-        if peer_user_doc:
-            peer_dev_id = peer_user_doc.get("device_id") or peer_user_doc["_id"]
-            peer_name = peer_user_doc.get("display_name") or peer_user_doc.get("username")
-            peer_avatar = peer_user_doc.get("avatar") or "🎓"
-            peer_status = peer_user_doc.get("status") or "In Study League"
+        if peer_user:
+            peer_dev_id = peer_user.device_id or peer_user.id
+            peer_name = peer_user.display_name or peer_user.username
+            peer_avatar = peer_user.avatar or "🎓"
+            peer_status = peer_user.status or "In Study League"
         else:
             peer_dev_doc = await mongo.devices.find_one(
                 {"$or": [{"competition_code": code}, {"referral_code": code}]}
@@ -728,7 +749,7 @@ async def get_leaderboard(device: DeviceDep) -> list[LeaderboardEntry]:
                 peer_name = peer_dev_doc.get("name", "DeskMate Peer")
 
         if peer_dev_id:
-            peer_stats = await compute_stats_for_device(peer_dev_id)
+            peer_stats = await compute_stats_for_device(peer_dev_id, user=peer_user)
             entries.append(
                 LeaderboardEntry(
                     rank=0,

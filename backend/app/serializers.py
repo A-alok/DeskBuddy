@@ -48,7 +48,9 @@ def device_read(device: Device) -> DeviceRead:
     if last_seen is not None:
         since = int((utcnow() - last_seen).total_seconds())
 
-    ws_connected = hub.device_connected(device.id)
+    ws_connected = hub.device_connected(device.id) or (
+        device.id.startswith("dev-") and hub.device_connected(settings.default_device_id)
+    )
     online = ws_connected or (
         since is not None and since <= settings.device_offline_after_seconds
     )
@@ -194,6 +196,8 @@ def task_read(task: Task) -> TaskRead:
     return TaskRead(
         id=task.id,
         device_id=task.device_id,
+        user_id=getattr(task, "user_id", None),
+        username=getattr(task, "username", None),
         title=task.title,
         notes=task.notes,
         priority=task.priority,
@@ -227,6 +231,8 @@ def chat_message_read(msg: ChatMessage) -> ChatMessageRead:
     return ChatMessageRead(
         id=msg.id,
         device_id=msg.device_id,
+        user_id=getattr(msg, "user_id", None),
+        username=getattr(msg, "username", None),
         role=msg.role,
         content=msg.content,
         source=msg.source,
@@ -238,6 +244,8 @@ def note_read(note: Note, *, include_text: bool = False) -> NoteRead:
     return NoteRead(
         id=note.id,
         device_id=note.device_id,
+        user_id=getattr(note, "user_id", None),
+        username=getattr(note, "username", None),
         title=note.title,
         kind=note.kind,
         char_count=note.char_count,
@@ -270,6 +278,8 @@ def quiz_session_read(session: QuizSession) -> QuizSessionRead:
     return QuizSessionRead(
         id=session.id,
         device_id=session.device_id,
+        user_id=getattr(session, "user_id", None),
+        username=getattr(session, "username", None),
         note_id=session.note_id,
         note_title=session.note_title,
         questions=questions,

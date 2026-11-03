@@ -10,7 +10,7 @@ from .. import events as ev
 from .. import repo
 from ..config import settings as app_settings
 from ..db import mongo
-from ..deps import DeviceDep, get_or_create_device, require_db
+from ..deps import DeviceDep, UserDep, get_or_create_device, require_db
 from ..models import (
     Device,
     DeviceEvent,
@@ -207,33 +207,50 @@ async def touch_event(
 @router.get("/snapshot", response_model=SnapshotRead, tags=["snapshot"])
 async def snapshot(
     device: DeviceDep,
+    user: UserDep,
     range_days: int = Query(default=7, ge=1, le=90),
     tasks_limit: int = Query(default=200, ge=1, le=200),
     reminders_limit: int = Query(default=100, ge=1, le=100),
 ) -> SnapshotRead:
-    """Everything a client needs for a cold start, in one request.
-
-    The dashboard and the firmware both call this on load and on WebSocket
-    reconnect, then keep themselves current from events alone. Reconciling from
-    one authoritative read beats trying to replay whatever was missed.
-    """
+    """Everything a client needs for a cold start, in one request."""
     active_timer = await timer_service.get_active(device.id)
     recent_timers = await timer_service.list_recent(device.id, limit=10)
     sw = await stopwatch_service.get(device.id)
     pomo = await pomodoro_service.get(device.id)
     alarms = await alarm_service.list_for_device(device.id)
 
+    reminder_filter: dict = {}
+    if user:
+        reminder_filter["$or"] = [
+            {"user_id": user.id},
+            {"username": user.username},
+            {"device_id": user.device_id},
+        ]
+    else:
+        reminder_filter["device_id"] = device.id
+
     reminders = await repo.find_many(
         mongo.reminders,
         Reminder,
-        {"device_id": device.id},
+        reminder_filter,
         sort=[("remind_at", repo.ASC)],
         limit=reminders_limit,
     )
+
+    task_filter: dict = {}
+    if user:
+        task_filter["$or"] = [
+            {"user_id": user.id},
+            {"username": user.username},
+            {"device_id": user.device_id},
+        ]
+    else:
+        task_filter["device_id"] = device.id
+
     tasks = await repo.find_many(
         mongo.tasks,
         Task,
-        {"device_id": device.id},
+        task_filter,
         sort=[("done", repo.ASC), ("created_at", repo.DESC)],
         limit=tasks_limit,
     )
@@ -248,7 +265,7 @@ async def snapshot(
         mongo.settings_store, Setting, {"device_id": device.id}, limit=100
     )
 
-    analytics = await analytics_service.build(device.id, range_days)
+    analytics = await analytics_service.build(device.id, range_days, user=user)
     
     from ..services import weather as weather_service
     weather = None

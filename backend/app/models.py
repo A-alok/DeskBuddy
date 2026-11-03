@@ -218,6 +218,8 @@ class Stopwatch(Document):
 class Alarm(Document):
     id: str = Field(default_factory=new_id, alias="_id")
     device_id: str
+    user_id: Optional[str] = None
+    username: Optional[str] = None
     label: str = "Alarm"
     # Local wall-clock time on the device, 24h "HH:MM".
     time_of_day: str = "07:00"
@@ -234,6 +236,8 @@ class Alarm(Document):
 class Reminder(Document):
     id: str = Field(default_factory=new_id, alias="_id")
     device_id: str
+    user_id: Optional[str] = None
+    username: Optional[str] = None
     text: str
     remind_at: datetime
     done: bool = False
@@ -245,6 +249,8 @@ class Reminder(Document):
 class Task(Document):
     id: str = Field(default_factory=new_id, alias="_id")
     device_id: str
+    user_id: Optional[str] = None
+    username: Optional[str] = None
     title: str
     notes: Optional[str] = None
     priority: Priority = Priority.NORMAL
@@ -283,6 +289,8 @@ class PomodoroState(Document):
 class FocusSession(Document):
     id: str = Field(default_factory=new_id, alias="_id")
     device_id: str
+    user_id: Optional[str] = None
+    username: Optional[str] = None
     kind: SessionKind = SessionKind.POMODORO_FOCUS
     planned_seconds: int = 0
     actual_seconds: int = 0
@@ -332,6 +340,8 @@ class Setting(Document):
 class ChatMessage(Document):
     id: str = Field(default_factory=new_id, alias="_id")
     device_id: str
+    user_id: Optional[str] = None
+    username: Optional[str] = None
     role: str = "user"  # user | assistant | system
     content: str
     source: CommandSource = CommandSource.DASHBOARD
@@ -344,6 +354,8 @@ class Note(Document):
 
     id: str = Field(default_factory=new_id, alias="_id")
     device_id: str
+    user_id: Optional[str] = None
+    username: Optional[str] = None
     title: str                      # usually the filename
     kind: str = "text"              # pdf | docx | xlsx | text — how it was read
     text: str = ""                  # extracted plain text, capped on upload
@@ -370,6 +382,8 @@ class QuizSession(Document):
 
     id: str = Field(default_factory=new_id, alias="_id")
     device_id: str
+    user_id: Optional[str] = None
+    username: Optional[str] = None
     note_id: str
     note_title: str = ""
     questions: list[QuizQuestionDoc] = Field(default_factory=list)

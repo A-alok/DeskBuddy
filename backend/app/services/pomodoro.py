@@ -13,7 +13,7 @@ from typing import Optional
 
 from .. import repo
 from ..db import mongo
-from ..models import FocusSession, PomodoroPhase, PomodoroState, RunState, SessionKind
+from ..models import FocusSession, PomodoroPhase, PomodoroState, RunState, SessionKind, User
 from ..utils import as_utc, in_seconds, seconds_until, utcnow
 
 
@@ -78,9 +78,18 @@ async def apply_config(
     return await _save(state.id, changes)
 
 
-async def _open_session(state: PomodoroState, phase: str) -> FocusSession:
+async def _open_session(
+    state: PomodoroState, phase: str, user: Optional[User] = None
+) -> FocusSession:
+    if not user:
+        user_doc = await mongo.users.find_one({"device_id": state.id})
+        if user_doc:
+            user = User.model_validate(user_doc)
+
     session = FocusSession(
         device_id=state.id,
+        user_id=user.id if user else None,
+        username=user.username if user else None,
         kind=_session_kind(phase),
         planned_seconds=phase_seconds(state, phase),
         started_at=utcnow(),

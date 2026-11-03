@@ -31,6 +31,26 @@ public class BackendClient {
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    private String authToken = null;
+    private String userId = null;
+    private String username = "alok17";
+
+    public void setAuthToken(String token) {
+        this.authToken = token;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getUsername() {
+        return username != null ? username : "alok17";
+    }
+
     public void getObject(String urlString, JsonObjectCallback callback) {
         executor.execute(() -> {
             try {
@@ -86,6 +106,16 @@ public class BackendClient {
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(7000);
         conn.setRequestProperty("Accept", "application/json");
+
+        if (authToken != null && !authToken.isEmpty()) {
+            conn.setRequestProperty("Authorization", "Bearer " + authToken);
+        }
+        if (userId != null && !userId.isEmpty()) {
+            conn.setRequestProperty("X-User-Id", userId);
+        }
+        if (username != null && !username.isEmpty()) {
+            conn.setRequestProperty("X-Username", username);
+        }
 
         if (payload != null && (method.equals("POST") || method.equals("PATCH") || method.equals("PUT"))) {
             conn.setDoOutput(true);

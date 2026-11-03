@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from .. import events as ev
 from .. import repo
 from ..db import mongo
-from ..deps import DeviceDep
+from ..deps import DeviceDep, UserDep
 from ..models import FocusSession, RunState
 from ..realtime import hub
 from ..schemas import FocusSessionRead, PomodoroConfig, PomodoroRead, PomodoroStartRequest
@@ -116,12 +116,23 @@ async def reset_cycles(device: DeviceDep) -> PomodoroRead:
 @router.get("/sessions", response_model=list[FocusSessionRead])
 async def sessions(
     device: DeviceDep,
+    user: UserDep,
     limit: int = Query(default=50, ge=1, le=500),
 ) -> list[FocusSessionRead]:
+    filt: dict = {}
+    if user:
+        filt["$or"] = [
+            {"user_id": user.id},
+            {"username": user.username},
+            {"device_id": user.device_id},
+        ]
+    else:
+        filt["device_id"] = device.id
+
     rows = await repo.find_many(
         mongo.focus_sessions,
         FocusSession,
-        {"device_id": device.id},
+        filt,
         sort=[("started_at", repo.DESC)],
         limit=limit,
     )
